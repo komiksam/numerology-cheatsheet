@@ -638,7 +638,7 @@
 
   /* ---------- qabbalah ---------- */
   {
-    id: "qabbalah", tag: "qabbalah", trad: "qabbalah", num: "1-400", wide: true, title: "Qabbalah — gematria & 13-square",
+    id: "qabbalah", tag: "qabbalah", trad: "qabbalah", num: "1-400", wide: true, title: "Gematria & 13-square",
     note: "Each letter takes the gematria value of the Hebrew letter it maps to (A = 1 … N = 50 … T = 400), is reduced to a single digit, and is dealt row by row into the upside-down triangle — left to right, starting under the total cell. The same letters are also filed into the 13-square of the 13-letter circle, which restarts after M. The single digits here are not the Chaldean values: Chaldean groups letters by sound instead, so the two coincide for only fifteen of the twenty-six letters and part company from F onwards. Flip for the full comparison.",
     back: () =>
       "<p>Gematria is the practice of reading a word as a number by using its letters' numerical values. It is " +
@@ -745,7 +745,7 @@
   },
 
   {
-    id: "anglossic", tag: "qabbalah", trad: "qabbalah", num: "1-400", title: "Qabbalah — alphanumerical",
+    id: "anglossic", tag: "qabbalah", trad: "qabbalah", num: "1-400", title: "Anglossic Qabbalah",
     note: "The alphanumerical cipher: the 26 Latin letters are read as the 22 Hebrew letters of the Master Alphabet, the surplus four taking final-letter values. A–V are the Mathers table published in Kabbalah Unveiled (1887); W, X, Y, Z take Vau, Samekh, Nun sof. and Tzaddi sof. — the one part of the table charts disagree about. Alongside the absolute value (mispar hechrachi) sits mispar katan, the “small value” that simply drops the zeroes: 20 → 2, 400 → 4.",
     back: () =>
       "<p>Also written <em>Anglicised</em> or <em>Anglossic</em> Qabbalah. Where the Qabbalah card borrows the " +
@@ -2290,7 +2290,22 @@
 .nq-sep{width:1px;height:16px;background:var(--nq-line);margin:0 4px}
 /* "auto" packs as many columns as the container allows, but never narrower
    than the reader's viewport can usefully carry */
-.nq.is-auto .nq-list{grid-template-columns:repeat(auto-fit,minmax(min(330px,100%),1fr))}
+/* Auto mode packs with flex rather than grid. A wide card that spans a whole
+   grid row leaves the rest of the row empty whenever a narrow card precedes it
+   and the remainder is too small for the next wide card. Flex has no such
+   concept: every wrapped line is filled edge to edge because the items grow
+   into whatever space is left, and a wide card asks for a larger share with a
+   bigger flex-basis rather than demanding an entire row. */
+.nq.is-auto .nq-list{
+  display:flex;flex-wrap:wrap;align-items:stretch;
+  gap:var(--nq-gap);
+}
+.nq.is-auto .nq-list > .nq-card{
+  flex:1 1 300px;min-width:min(330px,100%);
+}
+.nq.is-auto .nq-list > .nq-card.wide{
+  flex:2.6 1 620px;min-width:min(430px,100%);
+}
 
 .nq-foot{
   margin-top:var(--nq-gap);padding-top:10px;border-top:1px solid var(--nq-line);
@@ -2343,6 +2358,36 @@
     root.style.setProperty("--nq-cols", cols || "auto");
     root.classList.toggle("is-auto", !cols);
   };
+
+  /* ---- URL state ----
+     The view is described by four things: the text, the grouping mode, the
+     column count and which tag groups are on. All four round-trip through the
+     query string, and every change is written back with replaceState, which
+     never reloads the page and never grows the history stack. Parameter names
+     are short because the whole thing has to survive being pasted into chat.
+
+     Disabled on any non-http protocol: inside an Obsidian note, rewriting
+     location would fight the app for its own URL bar. */
+  const URL_OK = (() => {
+    try { return location.protocol === "http:" || location.protocol === "https:"; }
+    catch (e) { return false; }
+  })();
+
+  function readURL() {
+    if (!URL_OK) return null;
+    let p;
+    try { p = new URLSearchParams(location.search); } catch (e) { return null; }
+    if (![...p.keys()].length) return null;
+    const out = {};
+    if (p.has("input")) out.input = p.get("input");
+    const g = p.get("groupby");
+    if (g && MODES.some(m => m.id === g)) out.groupby = g;
+    const c = p.get("cols");
+    if (c !== null && c !== "" && COLUMN_CHOICES.indexOf(+c) >= 0) out.cols = +c;
+    const s = p.get("sel");
+    if (s !== null) out.sel = s.split(",").filter(Boolean);
+    return out;
+  }
 
   /* ---- grouping: tradition | numeral | result | none ----
      "none" keys on the card's own id, so the row lists one pill per card
@@ -2406,6 +2451,23 @@
   const groupKey = () => MODES.find(m => m.id === mode);
   const isOn = k => groupOn(groupKey(), k);
 
+  /* Apply the query string now, while order()/isOn() exist but the header
+     markup below has not been built yet — that markup bakes in which mode and
+     column button render as pressed, so it has to see the final values. */
+  const urlInit = readURL();
+  let pendingSel = null;
+  if (urlInit) {
+    if (urlInit.groupby) mode = urlInit.groupby;
+    if (urlInit.cols !== undefined) cols = urlInit.cols;
+    if (urlInit.sel) {
+      /* In result mode the group keys are the figures the current input
+         produces, so they do not exist until the first paint has run. Applying
+         the selection now would read the wrong key set, so it is deferred. */
+      if (mode === "result") pendingSel = urlInit.sel;
+      else order(groupKey()).forEach(k => { on[mode][k] = urlInit.sel.indexOf(k) >= 0; });
+    }
+  }
+
   function tagRow() {
     const m = groupKey();
     let keys = order(m);
@@ -2415,12 +2477,13 @@
     const none = mode === "none";
     return '<div class="nq-row' + (none ? " is-none" : "") + '"><span class="nq-lbl">' +
       (none ? "cards" : "tags") + "</span>" +
+      '<button class="nq-tag" type="button" id="nq-all">all</button>' +
+      '<button class="nq-tag" type="button" id="nq-none">none</button>' +
       keys.map(k =>
         '<button class="nq-tag" type="button" data-nqtag="' + esc(k) + '" aria-pressed="' + isOn(k) + '">' +
         esc(none ? (SHORT[k] || k) : (GROUP_LABELS[k] || k)) +
         '<span class="cnt">' + counts[k] + "</span></button>").join("") +
-      '<button class="nq-tag" type="button" id="nq-all">all</button>' +
-      '<button class="nq-tag" type="button" id="nq-none">none</button></div>';
+      "</div>";
   }
 
   const modeRow =
@@ -2437,6 +2500,8 @@
     '<div class="nq-row">' +
       PRESETS.map(p => '<button class="nq-b" type="button" data-preset="' + esc(p) + '">' + esc(p) + "</button>").join("") +
       '<button class="nq-b" type="button" id="nq-clear">clear</button>' +
+      (URL_OK ? '<button class="nq-b" type="button" id="nq-url" ' +
+        'title="copy a link that reopens exactly this view">copy link</button>' : "") +
     "</div>" +
     '<textarea id="nq-input" spellcheck="false" autocomplete="off" ' +
       'placeholder="type a name, a date, anything..."></textarea>' +
@@ -2576,6 +2641,7 @@
     applyCols();
     root.querySelectorAll("[data-nqcols]").forEach(x =>
       x.setAttribute("aria-pressed", +x.dataset.nqcols === cols ? "true" : "false"));
+    syncURL();
   }));
 
   /* ==========================================================================
@@ -2584,6 +2650,26 @@
 
   const input = root.querySelector("#nq-input");
   const stats = root.querySelector("#nq-stats");
+
+  /* Mirror the view into the address bar. Called at the end of every paint, so
+     typing, presets, clear and every tag change are covered; the column picker
+     calls it directly because it repaints nothing. replaceState keeps the back
+     button meaningful — no history entry is created per keystroke. */
+  function syncURL() {
+    if (!URL_OK) return;
+    try {
+      const p = new URLSearchParams();
+      if (input.value) p.set("input", input.value);
+      p.set("groupby", mode);
+      p.set("cols", String(cols));
+      const keys = order(groupKey());
+      const shown = keys.filter(isOn);
+      /* only worth encoding when something is actually hidden */
+      if (shown.length !== keys.length) p.set("sel", shown.join(","));
+      const q = p.toString();
+      history.replaceState(null, "", q ? "?" + q : location.pathname);
+    } catch (e) { /* history can be blocked; the sheet still works */ }
+  }
 
   function analyze(raw) {
     const s = norm(raw);
@@ -2649,6 +2735,7 @@
       pill("cards", visible.length + "/" + SYSTEMS.length) + tail;
 
     visible.forEach(s => { s.el.classList.toggle("mas", s.res !== null && isMaster(s.res)); });
+    syncURL();
   }
 
   let raf = null;
@@ -2668,9 +2755,48 @@
   root.querySelectorAll("[data-preset]").forEach(b =>
     b.addEventListener("click", () => { input.value = b.dataset.preset; paint(); }));
 
-  input.value = INITIAL_INPUT;
+  /* Copy the current view as a link. The URL is already in sync, so this just
+     has to put it on the clipboard and say so. */
+  const urlBtn = root.querySelector("#nq-url");
+  if (urlBtn) {
+    const say = ok => {
+      urlBtn.textContent = ok ? "copied" : "press ⌘/Ctrl+C";
+      setTimeout(() => { urlBtn.textContent = "copy link"; }, 1600);
+    };
+    urlBtn.addEventListener("click", () => {
+      syncURL();
+      const link = location.href;
+      const done = ok => { say(ok); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => done(true), () => done(false));
+      } else {
+        /* file:// and older contexts have no async clipboard; fall back to a
+           selection the reader can copy by hand */
+        const ta = document.createElement("textarea");
+        ta.value = link;
+        ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        done(ok);
+      }
+    });
+  }
+
+  input.value = urlInit && urlInit.input !== undefined ? urlInit.input : INITIAL_INPUT;
   repaintTags();
   paint();
+
+  /* Now the result groups exist, so a deferred selection can be applied. */
+  if (pendingSel) {
+    order(groupKey()).forEach(k => { on[mode][k] = pendingSel.indexOf(k) >= 0; });
+    pendingSel = null;
+    repaintTags();
+    paint();
+  }
 })();
 </script>
 
