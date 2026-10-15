@@ -34,6 +34,27 @@
      0. SETTINGS
      ========================================================================== */
 
+  /** Which slice of the sheet opens at load. A card opts into views with a
+      `views: [...]` array; a card with no `views` appears in all of them.
+
+        general   everything
+        name      cards that read a personal name in a numerological tradition
+        birthday  cards that read numerals — dates, years, phone numbers
+        layout    cards that place the letters rather than total them
+        qabbalah  the Qabbalah family: gematria, alphanumerical, sephirotic
+
+      Note that "name" is narrower than it looks: it drops the two numeral-only
+      cards, and also Morse and the Modular card, because neither is a received
+      tradition for names. They stay available in general. */
+  const VIEW_MODE = "general";
+  const VIEW_CHOICES = [
+    { id: "general",  label: "general",  title: "every card on the sheet" },
+    { id: "name",     label: "name",     title: "systems that calculate a personal name" },
+    { id: "birthday", label: "birthday", title: "systems that take numerals: dates, years, numbers" },
+    { id: "layout",   label: "layout",   title: "the grids, pyramids and trees" },
+    { id: "qabbalah", label: "qabbalah", title: "gematria, alphanumerical and the sephirotic tree" }
+  ];
+
   /** Which grouping the tag row uses at load: tradition | numeral | result | none */
   const GROUP_MODE = "none";
 
@@ -430,7 +451,7 @@
 
   /* ---------- arithmetic ---------- */
   {
-    id: "simple", tag: "arithmetic", trad: "arithmetic", num: "digits", title: "Simple digital root",
+    id: "simple", views: ["general", "birthday"], tag: "arithmetic", trad: "arithmetic", num: "digits", title: "Simple digital root",
     note: "Sum every digit, then keep summing the digits of the sum until one digit remains. Mathematically this is “number mod 9”, except multiples of 9 return 9 rather than 0, and it can never produce 11, 22 or 33. This is the one card that takes no letter table, which is why it stays silent on names — dates, phone numbers and house numbers are what it is for. For a name the answer depends entirely on which table you pick, and that choice is what the other cards exist to expose.",
     back: () =>
       '<p>The only genuinely mathematical card on this sheet. Everything else is a convention that people agreed on; ' +
@@ -470,7 +491,7 @@
   },
 
   {
-    id: "reverse", tag: "arithmetic", trad: "arithmetic", num: "digits", title: "Reverse addition",
+    id: "reverse", views: ["general", "birthday"], tag: "arithmetic", trad: "arithmetic", num: "digits", title: "Reverse addition",
     note: "The simple root with the digits read right to left. Addition is commutative, so the total is always identical and the result never changes — this card exists to prove that rather than leave it assumed, and to make mirrored or palindromic inputs easy to check. Same numerals-only rule as the card above.",
     back: () =>
       "<p>This card is here to settle a question, not to produce a new number. If it ever disagrees with the card " +
@@ -515,7 +536,7 @@
 
   /* ---------- classic ---------- */
   {
-    id: "pyth", tag: "pythagorean", trad: "pythagorean", num: "1-9", title: "Pythagorean",
+    id: "pyth", views: ["general", "name"], tag: "pythagorean", trad: "pythagorean", num: "1-9", title: "Pythagorean",
     note: "Letters repeat the 1-9 cycle from A. Vowels (A E I O U) and consonants are totalled separately, then added together; the master number that survives the final reduction is the result. Any digits in the input are ignored here — they belong to the date systems, not the name systems. Chaldean is often described as the same idea; it is not. Chaldean never repeats a cycle at all — it groups letters by the sound they make, so A is 1 here and 1 there but F is 6 here and 8 there, and no value ever reaches 9.",
     back: () =>
       "<p>A1Z26 with the tail cut off. The sequence runs 1 to 9 and then starts again at 1, so J is worth the " +
@@ -562,7 +583,7 @@
   },
 
   {
-    id: "chaldean", tag: "chaldean", trad: "chaldean", num: "1-8", title: "Chaldean Master Numbers",
+    id: "chaldean", views: ["general", "name"], tag: "chaldean", trad: "chaldean", num: "1-8", title: "Chaldean Master Numbers",
     note: "The published Chaldean table, which groups letters by the sound they make rather than by position: A I J Q Y = 1, B K R = 2, C G L S = 3, D M T = 4, E H N X = 5, U V W = 6, O Z = 7, F P = 8. Nine is withheld as sacred, so no letter carries it, and digits contribute nothing. Method: count the vowels, count the consonants, subtract — and keep 11, 22 or 33 unreduced.",
     back: () =>
       "<p>The table most numerology actually means by “Chaldean”, popularised in English by the astrologer " +
@@ -638,7 +659,7 @@
 
   /* ---------- qabbalah ---------- */
   {
-    id: "qabbalah", tag: "qabbalah", trad: "qabbalah", num: "1-400", wide: true, title: "Gematria & 13-square",
+    id: "qabbalah", views: ["general", "name", "layout", "qabbalah"], tag: "qabbalah", trad: "qabbalah", num: "1-400", wide: true, title: "Gematria & 13-square",
     note: "Each letter takes the gematria value of the Hebrew letter it maps to (A = 1 … N = 50 … T = 400), is reduced to a single digit, and is dealt row by row into the upside-down triangle — left to right, starting under the total cell. The same letters are also filed into the 13-square of the 13-letter circle, which restarts after M. The single digits here are not the Chaldean values: Chaldean groups letters by sound instead, so the two coincide for only fifteen of the twenty-six letters and part company from F onwards. Flip for the full comparison.",
     back: () =>
       "<p>Gematria is the practice of reading a word as a number by using its letters' numerical values. It is " +
@@ -745,7 +766,7 @@
   },
 
   {
-    id: "anglossic", tag: "qabbalah", trad: "qabbalah", num: "1-400", title: "Anglossic Qabbalah",
+    id: "anglossic", views: ["general", "name", "qabbalah"], tag: "qabbalah", trad: "qabbalah", num: "1-400", title: "Anglossic Qabbalah",
     note: "The alphanumerical cipher: the 26 Latin letters are read as the 22 Hebrew letters of the Master Alphabet, the surplus four taking final-letter values. A–V are the Mathers table published in Kabbalah Unveiled (1887); W, X, Y, Z take Vau, Samekh, Nun sof. and Tzaddi sof. — the one part of the table charts disagree about. Alongside the absolute value (mispar hechrachi) sits mispar katan, the “small value” that simply drops the zeroes: 20 → 2, 400 → 4.",
     back: () =>
       "<p>Also written <em>Anglicised</em> or <em>Anglossic</em> Qabbalah. Where the Qabbalah card borrows the " +
@@ -834,7 +855,7 @@
 
   /* ---------- triangle ---------- */
   {
-    id: "tolife", tag: "triangle", trad: "pythagorean", num: "1-8", wide: true, title: "Triangle of Life — folding pyramid",
+    id: "tolife", views: ["general", "name", "layout"], tag: "triangle", trad: "pythagorean", num: "1-8", wide: true, title: "Triangle of Life — folding pyramid",
     note: "A different construction from the Qabbalah pyramid above. Here the letters sit on the top row and every cell below is the reduced sum of the two cells above it, so the triangle narrows by one each layer and converges on a single figure at the point. The top row only ever holds letters — nothing is dealt into rows 2 onwards.",
     html: () =>
       '<div class="nq-row nq-modes">' +
@@ -954,7 +975,7 @@
   },
 
   {
-    id: "pythchart", tag: "triangle", trad: "pythagorean", num: "1-9", title: "Pythagorean chart — 45 cells",
+    id: "pythchart", views: ["general", "name", "layout"], tag: "triangle", trad: "pythagorean", num: "1-9", title: "Pythagorean chart — 45 cells",
     note: "The full Pythagorean chart: nine rows of 9, 8, 7 … 1 cells, forty-five in all. Each figure owns a diagonal — 1 gets a single cell in the top-left corner, 9 gets nine running from the top-right corner down to the point — so a name whose letters are mostly low numbers crowds into the wide top of the triangle.",
     html: () =>
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
@@ -1034,7 +1055,7 @@
 
   /* ---------- pyramids ---------- */
   {
-    id: "chpyr", tag: "pyramid", trad: "chaldean", num: "1-8", wide: true, title: "Chaldean pyramid 3-3-3-3-3-3",
+    id: "chpyr", views: ["general", "name", "layout"], tag: "pyramid", trad: "chaldean", num: "1-8", wide: true, title: "Chaldean pyramid 3-3-3-3-3-3",
     note: "The classic Chaldean pyramid: letters are laid down in rows of three, each row stepped half a cell to the right, with the letter count closing the base. The value sits above the letter. The values are the published Chaldean values, identical to the Chaldean card — but the reduction here is of the plain letter <em>sum</em>, whereas that card subtracts the vowels and consonants. The two agree almost always and part company at the zero case.",
     back: () =>
       "<p>A layout rather than a calculation. The numbers come from the Chaldean card; the pyramid is how they " +
@@ -1106,7 +1127,7 @@
   },
 
   {
-    id: "chrev", tag: "pyramid", trad: "chaldean", num: "1-8", title: "Chaldean pyramid — reversed",
+    id: "chrev", views: ["general", "name", "layout"], tag: "pyramid", trad: "chaldean", num: "1-8", title: "Chaldean pyramid — reversed",
     note: "The same pyramid filled from the last letter back to the first, so the name is read upwards from the apex. The value sum is unchanged and so is the result — use this layout to read a name backwards, not to get a different number.",
     back: () =>
       "<p>A mirror of the previous card, and included as a demonstration rather than a system.</p>" +
@@ -1154,7 +1175,7 @@
   },
 
   {
-    id: "affirm", tag: "pyramid", trad: "modern", num: "1-9", title: "Affirmation triangle (3-3-3)",
+    id: "affirm", views: ["general", "name", "layout"], tag: "pyramid", trad: "modern", num: "1-9", title: "Affirmation triangle (3-3-3)",
     note: "Nine letters fill a 3×3 grid left to right, top to bottom; a tenth letter, if the name is long enough, takes the centre. The triangle's number is the letter count, reduced — and kept when it lands on 11, 22 or 33.",
     back: () =>
       "<p>Sometimes called the 3-3-3 grid or the numerology triangle. The letter <em>count</em> is the number " +
@@ -1215,7 +1236,7 @@
   },
 
   {
-    id: "pyth3", tag: "pyramid", trad: "pythagorean", num: "1-9", title: "Pythagorean 3-column grid",
+    id: "pyth3", views: ["general", "name", "layout"], tag: "pyramid", trad: "pythagorean", num: "1-9", title: "Pythagorean 3-column grid",
     note: "Letters are dealt into three columns top to bottom; each column is totalled and reduced on its own. Reading the three column roots left to right is the “3-3-3” summary of a name; the grand total is the Pythagorean result.",
     back: () =>
       "<p>The name <em>3-3-3</em> comes from nine cells, not three: nine letters in a three-by-three arrangement. " +
@@ -1262,7 +1283,7 @@
   },
 
   {
-    id: "p3", tag: "pyramid", trad: "pythagorean", num: "1-9", title: "Ternary reduction tree (P3)",
+    id: "p3", views: ["general", "name", "layout"], tag: "pyramid", trad: "pythagorean", num: "1-9", title: "Ternary reduction tree (P3)",
     note: "The 3-3-3 grid taken one level further: the letters feed nine Pythagorean cells, those nine reduce to three, and those three reduce to one. Every level shows the running reduction of the level to its left.",
     back: () =>
       "<p>Expands the 3-3-3 grid by one generation. It is the same arithmetic as the neighbouring cards, drawn " +
@@ -1319,7 +1340,7 @@
 
   /* ---------- tree ---------- */
   {
-    id: "seph", tag: "tree", trad: "qabbalah", num: "11-32", wide: true, title: "Sephirotic tree — 22 paths",
+    id: "seph", views: ["general", "name", "layout", "qabbalah"], tag: "tree", trad: "qabbalah", num: "11-32", wide: true, title: "Sephirotic tree — 22 paths",
     note: "The 22 Hebrew letters are the 22 paths of the Tree of Life. The Nth letter of the name takes path 10+N; that path number is reduced (11→2, 22→4, …) to name its root sephirah. Compare where the same letters land here and in the Qabbalah card — the two conventions disagree.",
     back: () =>
       "<p>In Qabbalah the twenty-two Hebrew letters are not an alphabet to be summed — they are the twenty-two " +
@@ -1386,7 +1407,7 @@
 
   /* ---------- grid ---------- */
   {
-    id: "loshu", tag: "grid", trad: "chinese", num: "1-9", title: "Lo Shu magic square",
+    id: "loshu", views: ["general", "name", "layout"], tag: "grid", trad: "chinese", num: "1-9", title: "Lo Shu magic square",
     note: "Each letter is reduced to a single digit and counted into the 3×3 magic square (4-9-2 / 3-5-7 / 8-1-6). Numbers that never appear stay empty. The centre, 5, is the balance point — the flatter the distribution, the more “balanced” the name is said to be.",
     back: () =>
       "<p>The Lo Shu is the oldest magic square arrangement known: every row, column and diagonal of the " +
@@ -1447,7 +1468,7 @@
 
   /* ---------- encoding / modern / math / structural ---------- */
   {
-    id: "morse", tag: "encoding", trad: "modern", num: "other", title: "Morse code reduction",
+    id: "morse", views: ["general"], tag: "encoding", trad: "modern", num: "other", title: "Morse code reduction",
     note: "Each letter is spelled in Morse, a dot counting 1 and a dash 2; the letter's value is the digital root of its own dot/dash total, and the name reduces to the sum of those values. Treat this as a display, not an accepted system — but it is a good way to see the shape of a name.",
     back: () =>
       "<p>Included because it is the one card on the sheet that reduces something that is not a number or a " +
@@ -1512,7 +1533,7 @@
   },
 
   {
-    id: "tel", tag: "modern", trad: "modern", num: "other", title: "Telephone keypad (T9)",
+    id: "tel", views: ["general", "name"], tag: "modern", trad: "modern", num: "other", title: "Telephone keypad (T9)",
     note: "Every letter takes the number of the key it shares on a phone keypad — PQRS on 7, WXYZ on 9. Summing those digits and reducing gives the modern “name number”, which is how most people check a name against a phone number.",
     back: () =>
       "<p>The most recent system here, and the one most people's first guess at numerology actually is: the " +
@@ -1559,7 +1580,7 @@
   },
 
   {
-    id: "math", tag: "math", trad: "arithmetic", num: "other", title: "Modular & mathematical view",
+    id: "math", views: ["general", "birthday"], tag: "math", trad: "arithmetic", num: "other", title: "Modular & mathematical view",
     note: "The same sums seen from number theory: unreduced totals, their residues, and every letter alphabet in one table. Use it to predict which cards can possibly agree before you read them.",
     back: () =>
       "<p>Not a numerological system at all. This card exists to let you work out in advance which of the other " +
@@ -1636,7 +1657,7 @@
   },
 
   {
-    id: "len", tag: "structural", trad: "arithmetic", num: "other", title: "Word length & ordinals",
+    id: "len", views: ["general", "name"], tag: "structural", trad: "arithmetic", num: "other", title: "Word length & ordinals",
     note: "Length carries as much weight in numerology as the letters do. Shown as the raw count, its digital root, and the same count taken per word so uneven names are obvious.",
     back: () =>
       "<p>Structural rather than alphabetical: no letter table is consulted, only how many letters there are.</p>" +
@@ -2093,6 +2114,18 @@
   font-size:11px;line-height:1.55;color:var(--nq-dim);
 }
 
+/* the view row sits above the grouping controls and decides which cards exist,
+   so it gets a slightly firmer pressed state to read as the coarser switch */
+.nq-viewrow{margin-bottom:2px}
+.nq-tag.nq-view{
+  border-color:var(--nq-line);color:inherit;
+  font-weight:600;
+}
+.nq-tag.nq-view[aria-pressed="true"]{
+  border-color:currentColor;font-weight:700;
+  background:color-mix(in srgb, currentColor 9%, transparent);
+}
+
 /* keyword strip at the foot of the front: quiet, the lead chip slightly lifted */
 .nq-kw{
   margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;
@@ -2380,6 +2413,8 @@
     if (![...p.keys()].length) return null;
     const out = {};
     if (p.has("input")) out.input = p.get("input");
+    const v = p.get("view");
+    if (v && VIEW_CHOICES.some(x => x.id === v)) out.view = v;
     const g = p.get("groupby");
     if (g && MODES.some(m => m.id === g)) out.groupby = g;
     const c = p.get("cols");
@@ -2400,6 +2435,16 @@
     { id: "none",      label: "no grouping", key: s => s.id }
   ];
   let mode = MODES.some(m => m.id === GROUP_MODE) ? GROUP_MODE : "none";
+
+  /* ---- views ----
+     A view is a slice of the sheet: which cards exist at all, as opposed to
+     the grouping row, which only reorders and filters within them. Each card
+     lists the views it belongs to. Group keys, pill counts and the stats line
+     are all computed over the current view, so a pill can never refer to a card
+     the view has taken away. */
+  let view = VIEW_CHOICES.some(v => v.id === VIEW_MODE) ? VIEW_MODE : "general";
+  const inView = s => !s.views || s.views.indexOf(view) >= 0;
+  const viewSystems = () => SYSTEMS.filter(inView);
 
   /* On-state per mode, seeded from DEFAULT_TAGS. "result" is not seeded: it
      is derived from the live numbers, and starts with everything visible. */
@@ -2439,7 +2484,7 @@
 
   const order = m => {
     const seen = [];
-    SYSTEMS.forEach(s => { const k = m.key(s); if (seen.indexOf(k) < 0) seen.push(k); });
+    viewSystems().forEach(s => { const k = m.key(s); if (seen.indexOf(k) < 0) seen.push(k); });
     return seen;
   };
   /* In result mode the groups are numbers: put masters first, then ascending. */
@@ -2457,6 +2502,7 @@
   const urlInit = readURL();
   let pendingSel = null;
   if (urlInit) {
+    if (urlInit.view) view = urlInit.view;
     if (urlInit.groupby) mode = urlInit.groupby;
     if (urlInit.cols !== undefined) cols = urlInit.cols;
     if (urlInit.sel) {
@@ -2473,7 +2519,7 @@
     let keys = order(m);
     if (mode === "result") keys = sortedResults(keys);
     const counts = {};
-    SYSTEMS.forEach(s => { const k = m.key(s); counts[k] = (counts[k] || 0) + 1; });
+    viewSystems().forEach(s => { const k = m.key(s); counts[k] = (counts[k] || 0) + 1; });
     const none = mode === "none";
     return '<div class="nq-row' + (none ? " is-none" : "") + '"><span class="nq-lbl">' +
       (none ? "cards" : "tags") + "</span>" +
@@ -2485,6 +2531,14 @@
         '<span class="cnt">' + counts[k] + "</span></button>").join("") +
       "</div>";
   }
+
+  const viewRow =
+    '<div class="nq-row nq-viewrow"><span class="nq-lbl">view</span>' +
+      VIEW_CHOICES.map(v =>
+        '<button class="nq-tag nq-view" type="button" data-nqview="' + v.id + '" ' +
+          'title="' + esc(v.title) + '" aria-pressed="' + (view === v.id) + '">' +
+          esc(v.label) + "</button>").join("") +
+    "</div>";
 
   const modeRow =
     '<div class="nq-row nq-moderow"><span class="nq-lbl">group by</span>' +
@@ -2508,7 +2562,7 @@
     '<div class="nq-stats" id="nq-stats"></div>';
 
   root.innerHTML =
-    '<div class="nq-top">' + modeRow +
+    '<div class="nq-top">' + viewRow + modeRow +
       '<div id="nq-tagrow">' + tagRow() + "</div>" + inputRow + "</div>" +
     '<div class="nq-list" id="nq-list"></div>' +
     '<div class="nq-foot">' +
@@ -2609,7 +2663,9 @@
      no result ("—") has its own group, so it filters alongside the numbers. */
   function applyFilter() {
     const m = groupKey();
-    SYSTEMS.forEach(s => { s.el.style.display = isOn(m.key(s)) ? "" : "none"; });
+    SYSTEMS.forEach(s => {
+      s.el.style.display = (inView(s) && isOn(m.key(s))) ? "" : "none";
+    });
     root.querySelectorAll("[data-nqtag]").forEach(b =>
       b.setAttribute("aria-pressed", isOn(b.dataset.nqtag) ? "true" : "false"));
   }
@@ -2629,6 +2685,14 @@
     if (b.id === "nq-none") { order(groupKey()).forEach(x => { on[mode][x] = false; }); paint(); return; }
     if (b.dataset.nqtag !== undefined) toggle(b.dataset.nqtag);
   });
+
+  root.querySelectorAll("[data-nqview]").forEach(b => b.addEventListener("click", () => {
+    view = b.dataset.nqview;
+    root.querySelectorAll("[data-nqview]").forEach(x =>
+      x.setAttribute("aria-pressed", x.dataset.nqview === view ? "true" : "false"));
+    repaintTags();
+    paint();
+  }));
 
   root.querySelectorAll("[data-nqmode]").forEach(b => b.addEventListener("click", () => {
     mode = b.dataset.nqmode;
@@ -2660,6 +2724,7 @@
     try {
       const p = new URLSearchParams();
       if (input.value) p.set("input", input.value);
+      p.set("view", view);
       p.set("groupby", mode);
       p.set("cols", String(cols));
       const keys = order(groupKey());
@@ -2732,7 +2797,8 @@
     stats.innerHTML =
       pill("letters", D.letters.length) + pill("digits", D.digits.length) +
       pill("vowels", D.nVowels) + pill("consonants", D.nCons) +
-      pill("cards", visible.length + "/" + SYSTEMS.length) + tail;
+      pill("cards", visible.length + "/" + viewSystems().length) +
+      (viewSystems().length < SYSTEMS.length ? pill("view", view) : "") + tail;
 
     visible.forEach(s => { s.el.classList.toggle("mas", s.res !== null && isMaster(s.res)); });
     syncURL();
