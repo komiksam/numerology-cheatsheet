@@ -101,23 +101,45 @@
      2. REFERENCE DATA
      ========================================================================== */
 
-  // Chaldean: A-I = 1, J-Q = 2, R-Z = 3, digits contribute nothing
+  /* Chaldean — the table published under the name "Chaldean". Cheiro's
+     English charts (early 1900s) and the standard Indian charts agree on
+     these groups: 1 A I J Q Y · 2 B K R · 3 C G L S · 4 D M T ·
+     5 E H N X · 6 U V W · 7 O Z · 8 F P. No letter is given a nine, on
+     the grounds that the figure is sacred and complete. The Latin alphabet
+     postdates Chaldea and no Babylonian text uses this table, so it is a
+     modern reconstruction that inherited the name. */
+  const CHALDEAN = [
+    1, 2, 3, 4, 5, 8, 3, 5, 1, 1, 2, 3, 4, 5, 7, 8, 1, 2,
+    3, 4, 6, 6, 6, 5, 1, 7
+  ];
   const chaldeanValue = code => {
     if (code < 65 || code > 90) return null;
-    const i = code - 64;                        // 1..26
-    return i <= 9 ? i : i <= 17 ? 2 : 3;
+    return CHALDEAN[code - 65];
   };
 
-  /* Chaldean 1–8 — the older "no nines" table used with the Triangle of Life.
-     Nine is held sacred and no letter is given it; this is a different table
-     from the modern Chaldean above, not a variant of it. Ç is 8 as well. */
+  /* A minority "Chaldean 1–9" variant also circulates, running A–I = 1–9 and
+     then flat 2s and 3s with no phonetic grouping. It is kept here only so the
+     Modular card can show both tables side by side; it drives no card's
+     headline result. Variants also disagree over X, Y and W — this one follows
+     the standard Cheiro grouping above, so X is 5. */
+  const CHALDEAN_9 = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 2, 2, 2, 2, 2, 2, 2, 2, 3,
+    3, 3, 3, 3, 3, 3, 3, 3
+  ];
+  const chaldean9Value = code => {
+    if (code < 65 || code > 90) return null;
+    return CHALDEAN_9[code - 65];
+  };
+
+  /* Chaldean 1–8 by letter, as used by the Triangle of Life and as the
+     fallback for gematria's four untranslatable letters. */
   const CHALDEAN_8 = {
     A: 1, I: 1, Q: 1, J: 1, Y: 1,
     B: 2, K: 2, R: 2,
     C: 3, G: 3, L: 3, S: 3,
     D: 4, M: 4, T: 4,
-    E: 5, H: 5, N: 5,
-    U: 6, V: 6, W: 6, X: 6,
+    E: 5, H: 5, N: 5, X: 5,
+    U: 6, V: 6, W: 6,
     O: 7, Z: 7,
     F: 8, P: 8
   };
@@ -494,11 +516,11 @@
   /* ---------- classic ---------- */
   {
     id: "pyth", tag: "pythagorean", trad: "pythagorean", num: "1-9", title: "Pythagorean",
-    note: "Letters repeat the 1-9 cycle from A. Vowels (A E I O U) and consonants are totalled separately, then added together; the master number that survives the final reduction is the result. Any digits in the input are ignored here — they belong to the date systems, not the name systems. Chaldean is often described as the same idea; it is not. Chaldean runs 1-9 only for A to I and then never restarts the cycle — every letter from J to Q is 2 and every letter from R to Z is 3, so J is no longer worth the same as A.",
+    note: "Letters repeat the 1-9 cycle from A. Vowels (A E I O U) and consonants are totalled separately, then added together; the master number that survives the final reduction is the result. Any digits in the input are ignored here — they belong to the date systems, not the name systems. Chaldean is often described as the same idea; it is not. Chaldean never repeats a cycle at all — it groups letters by the sound they make, so A is 1 here and 1 there but F is 6 here and 8 there, and no value ever reaches 9.",
     back: () =>
       "<p>A1Z26 with the tail cut off. The sequence runs 1 to 9 and then starts again at 1, so J is worth the " +
-      "same as A and R is worth 9. Chaldean is often described as the same idea; it is not — Chaldean stops the " +
-      "cycle at 17 and then uses only the values 1, 2 and 3.</p>" +
+      "same as A and R is worth 9. Chaldean is often described as the same idea; it is not — Chaldean groups " +
+      "letters by sound rather than by position and stops at 8, so F is 6 here and 8 there.</p>" +
       "<h4>Method</h4><p>Vowels and consonants are totalled separately and only then added together, because in " +
       "classical practice they were read as different kinds of number rather than one sum. The combined total is " +
       "then reduced — but the reduction stops at 11, 22 and 33.</p>" +
@@ -540,26 +562,30 @@
   },
 
   {
-    id: "chaldean", tag: "chaldean", trad: "chaldean", num: "1-9", title: "Chaldean Master Numbers",
-    note: "Chaldean uses fixed irregular values (A-I = 1, J-Q = 2, R-Z = 3) and counts digits as zero, so dates contribute nothing. Method: total the values, subtract the vowels in written order, subtract the consonants in written order, reduce — and stop at 11, 22 or 33.",
+    id: "chaldean", tag: "chaldean", trad: "chaldean", num: "1-8", title: "Chaldean Master Numbers",
+    note: "The published Chaldean table, which groups letters by the sound they make rather than by position: A I J Q Y = 1, B K R = 2, C G L S = 3, D M T = 4, E H N X = 5, U V W = 6, O Z = 7, F P = 8. Nine is withheld as sacred, so no letter carries it, and digits contribute nothing. Method: count the vowels, count the consonants, subtract — and keep 11, 22 or 33 unreduced.",
     back: () =>
-      "<p>The oldest letter table in common Western numerology, and the one most often credited to the " +
-      "Chaldean astrologers — though no Chaldean text survives that actually uses it.</p>" +
-      "<h4>The values</h4><p>A to I are 1 to 9 in order. J to Q are all 2. R to Z are all 3. Digits contribute " +
-      "<em>nothing</em>: a birth date written into this card is simply ignored, which is why Chaldean is useless " +
-      "for date work and decisive for names.</p>" +
+      "<p>The table most numerology actually means by “Chaldean”, popularised in English by the astrologer " +
+      "Cheiro in the early twentieth century. The attribution is a genuine anachronism: the Latin alphabet did not " +
+      "exist in Chaldea and no surviving Babylonian text uses this table.</p>" +
+      "<h4>The values</h4><p>Letters are grouped by the “vibration” of their sound, so the groups are deliberately " +
+      "uneven — five letters carry 1, two carry 8. <code>A I J Q Y</code> = 1, <code>B K R</code> = 2, " +
+      "<code>C G L S</code> = 3, <code>D M T</code> = 4, <code>E H N X</code> = 5, <code>U V W</code> = 6, " +
+      "<code>O Z</code> = 7, <code>F P</code> = 8. Nine is withheld entirely, on the grounds that it is sacred " +
+      "and complete. Charts that disagree usually differ over X, Y or W; this one follows the standard Cheiro " +
+      "grouping, so X is 5. Digits contribute <em>nothing</em> — a birth date typed into this card is ignored, " +
+      "which is why Chaldean is useless for date work and decisive for names.</p>" +
       "<h4>Method, and a real ambiguity</h4><p>The published procedure is a subtraction sequence — total the " +
-      "letters, then subtract each vowel in written order, then each consonant — rather than a single formula, " +
+      "letters, then subtract the vowels in written order, then the consonants — rather than a single formula, " +
       "which is why published tables of Chaldean results disagree with one another. The version implemented here, " +
       "and the most common in practice, collapses that sequence to the difference between the consonant count and " +
       "the vowel count.</p>" +
-      "<h4>Worked example</h4><p><code>ANDREA</code> totals 16 (A 1, N 2, D 4, R 3, E 5, A 1). Subtracting the " +
-      "vowels in written order, A + E + A = 7, leaves 9. Subtracting the consonants, N + D + R = 9, leaves 0 — " +
-      "and the count difference gives the same answer, 3 consonants against 3 vowels. Chaldean returns " +
-      "<span class=\"k\">0</span>.</p>" +
-      "<h4>Two Chaldean tables exist</h4><p>This is the modern one. An older <b>Chaldean 1–8</b> table, which " +
-      "assigns no letter a nine on the grounds that the figure is sacred, is used by the Triangle of Life card — " +
-      "the two are separate tables, not a disagreement about the same one.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> totals 18 (A 1, N 5, D 4, R 2, E 5, A 1). Subtracting the " +
+      "vowels, A + E + A = 7, leaves 11. Subtracting the consonants, N + D + R = 11, leaves 0 — and the count " +
+      "difference gives the same answer, 3 consonants against 3 vowels. Chaldean returns <span class=\"k\">0</span>.</p>" +
+      "<h4>The other Chaldean table</h4><p>A minority variant runs A–I = 1–9 and then flat 2s and 3s, with no " +
+      "phonetic grouping at all. It drives no headline on this sheet, but the <code>Modular</code> card lists it " +
+      "beside this one so the two can be compared directly.</p>" +
       "<h4>The zero case</h4><p>Chaldean treats 0 as 0. It never applies the 0 → 9 rule, so a perfectly balanced " +
       "name yields 0 rather than 9. That is the single biggest source of apparent disagreement between this card " +
       "and the others.</p>",
@@ -613,7 +639,7 @@
   /* ---------- qabbalah ---------- */
   {
     id: "qabbalah", tag: "qabbalah", trad: "qabbalah", num: "1-400", wide: true, title: "Qabbalah — gematria & 13-square",
-    note: "Each letter takes the gematria value of the Hebrew letter it maps to (A = 1 … N = 50 … T = 400), is reduced to a single digit, and is dealt row by row into the upside-down triangle — left to right, starting under the total cell. The same letters are also filed into the 13-square of the 13-letter circle, which restarts after M. The single digits here are not the Chaldean values: Chaldean keeps only the leading digit of the gematria and throws the rest away, so the two agree for just twelve letters and part company from J onwards. Flip for the full comparison.",
+    note: "Each letter takes the gematria value of the Hebrew letter it maps to (A = 1 … N = 50 … T = 400), is reduced to a single digit, and is dealt row by row into the upside-down triangle — left to right, starting under the total cell. The same letters are also filed into the 13-square of the 13-letter circle, which restarts after M. The single digits here are not the Chaldean values: Chaldean groups letters by sound instead, so the two coincide for only fifteen of the twenty-six letters and part company from F onwards. Flip for the full comparison.",
     back: () =>
       "<p>Gematria is the practice of reading a word as a number by using its letters' numerical values. It is " +
       "genuinely ancient — the Talmud does it, and so does the Hebrew Bible for a few verses, though the system " +
@@ -627,10 +653,11 @@
       "that is what the 13-row layout has room for. The <code>circle</code> column is a third convention: " +
       "position within the 13-letter circle, which restarts after M, so N through Z land back in the early cells.</p>" +
       "<h4>Worked example</h4><p><code>ANDREA</code> = 1 + 50 + 4 + 200 + 5 + 1 = 261, and 2+6+1 = 9.</p>" +
-      "<h4>Not the same as Chaldean</h4><p>Chaldean keeps only the <em>leading</em> digit of each gematria value " +
-      "and discards the magnitude. The reduced gematria digit agrees with the Chaldean value for only twelve of " +
-      "the twenty-six letters — A B C D E F G H I, then K, S and W. They disagree everywhere else, which is where " +
-      "the two cards diverge most sharply.</p>",
+      "<h4>Not the same as Chaldean</h4><p>Chaldean is not derived from gematria — it groups the Latin letters by " +
+      "the sound they make and never uses a value above 8. But reducing each gematria value to a single digit " +
+      "happens to land on the same figure as Chaldean for fifteen of the twenty-six letters: A B C D E, then " +
+      "J K L M N, then R S T, then Y Z. The two first part company at F — gematria 6 against Chaldean 8 — and " +
+      "disagree on eleven letters in all, which is where the two cards separate most sharply.</p>",
     html: () =>
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
         '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
@@ -811,7 +838,7 @@
     note: "A different construction from the Qabbalah pyramid above. Here the letters sit on the top row and every cell below is the reduced sum of the two cells above it, so the triangle narrows by one each layer and converges on a single figure at the point. The top row only ever holds letters — nothing is dealt into rows 2 onwards.",
     html: () =>
       '<div class="nq-row nq-modes">' +
-        '<button class="nq-tag" type="button" data-mode="ch" aria-pressed="true">chaldean 1&ndash;8</button>' +
+        '<button class="nq-tag" type="button" data-mode="ch" aria-pressed="true">chaldean</button>' +
         '<button class="nq-tag" type="button" data-mode="gm" aria-pressed="false">gematria</button>' +
       "</div>" +
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
@@ -897,14 +924,13 @@
       "than filling them. The letters sit on the top edge; every cell beneath is the reduced sum of the two cells " +
       "above it; the triangle loses one cell per layer and ends in a single figure at the point.</p>" +
       "<h4>Two tables, not one</h4><p>The mode switch changes the letter values, not the construction. " +
-      "<b>Chaldean 1–8</b> is the older table: A I Q J Y = 1, B K R = 2, C G L S = 3, D M T = 4, E H N = 5, " +
-      "U V W X = 6, O Z = 7, F P = 8. No letter is given a nine, which is the point of this table — it is " +
-      "asserted that nine is sacred and so cannot be assigned. This is a <em>different table</em> from the " +
-      "modern Chaldean card, which runs 1–9 then 2 then 3.</p>" +
+      "<b>Chaldean</b> is the published phonetic table the Chaldean card uses: A I J Q Y = 1, B K R = 2, " +
+      "C G L S = 3, D M T = 4, E H N X = 5, U V W = 6, O Z = 7, F P = 8. No letter is given a nine, which is " +
+      "the point of that table — nine is held sacred and so cannot be assigned.</p>" +
       "<h4>Gematria here</h4><p>A to V take the 22 Hebrew letters in order — Aleph 1 … Qoph 100, Resh 200, " +
-      "Shin 300, Tav 400. W, X, Y and Z have no Hebrew letter and fall back to their Chaldean 1–8 figure. " +
+      "Shin 300, Tav 400. W, X, Y and Z have no Hebrew letter and fall back to their Chaldean figure. " +
       "Folded, this reproduces the Pythagorean values exactly for A to V (and for X), diverging only at W, Y " +
-      "and Z. Note the Anglossic Qabbalah card uses final-letter values for those four instead.</p>" +
+      "and Z. Note the Alphanumerical Qabbalah card uses final-letter values for those four instead.</p>" +
       "<h4>The hebrew-order row</h4><p>The <code>hebrew order</code> row above the triangle is not part of " +
       "this construction at all — it is the A = 10 … Z = 35 total for the same letters, shown beside the " +
       "fold so the two readings of one name sit next to each other. It is the figure that makes " +
@@ -1008,8 +1034,8 @@
 
   /* ---------- pyramids ---------- */
   {
-    id: "chpyr", tag: "pyramid", trad: "chaldean", num: "1-9", wide: true, title: "Chaldean pyramid 3-3-3-3-3-3",
-    note: "The classic Chaldean pyramid: letters are laid down in rows of three, each row stepped half a cell to the right, with the letter count closing the base. The value sits above the letter. Values are identical to the Chaldean card, so the sum below is the check on the reading.",
+    id: "chpyr", tag: "pyramid", trad: "chaldean", num: "1-8", wide: true, title: "Chaldean pyramid 3-3-3-3-3-3",
+    note: "The classic Chaldean pyramid: letters are laid down in rows of three, each row stepped half a cell to the right, with the letter count closing the base. The value sits above the letter. The values are the published Chaldean values, identical to the Chaldean card — but the reduction here is of the plain letter <em>sum</em>, whereas that card subtracts the vowels and consonants. The two agree almost always and part company at the zero case.",
     back: () =>
       "<p>A layout rather than a calculation. The numbers come from the Chaldean card; the pyramid is how they " +
       "were traditionally written out by hand, three letters to a row, stepping right so the whole shape reads as " +
@@ -1020,9 +1046,13 @@
       "<h4>Capacity</h4><p>Six rows of three hold eighteen letters. Beyond that the pyramid simply runs out — " +
       "there is no agreed continuation, which is why long names need a different display.</p>" +
       "<h4>Worked example</h4><p><code>ANDREA</code> fills rows A / N D / R E A — six letters over three rows, " +
-      "leaving rows four to six empty. The values sum to 16, which reduces to 7.</p>" +
+      "leaving rows four to six empty. The values sum to 18, which reduces to 9.</p>" +
       "<h4>What it is good for</h4><p>Nothing numerical. Its value is spatial: it shows at a glance where a name " +
-      "runs out of letters, which is how practitioners reasoned about the shape before any table was formalised.</p>",
+      "runs out of letters, which is how practitioners reasoned about the shape before any table was formalised.</p>" +
+      "<h4>Why this can differ from the Chaldean card</h4><p>Same letter values, different final step. This card " +
+      "adds the values and reduces the total, so <code>ANDREA</code> gives 18 → 9. The Chaldean card runs the " +
+      "subtraction sequence instead, which lands on 0 for the same name. They agree on every input except " +
+      "balanced names, and that difference is the method, not an error.</p>",
     html: () =>
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
         '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
@@ -1076,7 +1106,7 @@
   },
 
   {
-    id: "chrev", tag: "pyramid", trad: "chaldean", num: "1-9", title: "Chaldean pyramid — reversed",
+    id: "chrev", tag: "pyramid", trad: "chaldean", num: "1-8", title: "Chaldean pyramid — reversed",
     note: "The same pyramid filled from the last letter back to the first, so the name is read upwards from the apex. The value sum is unchanged and so is the result — use this layout to read a name backwards, not to get a different number.",
     back: () =>
       "<p>A mirror of the previous card, and included as a demonstration rather than a system.</p>" +
@@ -1360,8 +1390,8 @@
     note: "Each letter is reduced to a single digit and counted into the 3×3 magic square (4-9-2 / 3-5-7 / 8-1-6). Numbers that never appear stay empty. The centre, 5, is the balance point — the flatter the distribution, the more “balanced” the name is said to be.",
     back: () =>
       "<p>The Lo Shu is the oldest magic square arrangement known: every row, column and diagonal of the " +
-      "3×3 grid sums to fifteen. It is also called the Fu Xi square and appears in Chinese, Jewish and " +
-      "Hinduic traditions independently.</p>" +
+      "3×3 grid sums to fifteen. Chinese tradition calls it the Fu Xi square. Comparable squares also appear in " +
+      "Jewish and Hinduic material, though whether those arose independently of the Chinese one is disputed.</p>" +
       "<h4>The method</h4><p>Each letter is first reduced to a single digit — here using the Pythagorean 1–9 " +
       "cycle — and then counted into its cell. Numbers that never occur in the name stay empty. The grid is " +
       "fixed: the cell at the centre is always 5.</p>" +
@@ -1577,8 +1607,8 @@
       const g = [
         ["digits", ds], ["A1Z26", a1],
         ["Pythagorean", D.letters.reduce((a, ch) => a + pythValue(ch.charCodeAt(0)), 0)],
-        ["Chaldean 1–9", D.letters.reduce((a, ch) => a + chaldeanValue(ch.charCodeAt(0)), 0)],
-        ["Chaldean 1–8", D.letters.reduce((a, ch) => a + chaldean8(ch), 0)],
+        ["Chaldean", D.letters.reduce((a, ch) => a + chaldeanValue(ch.charCodeAt(0)), 0)],
+        ["Chaldean 1–9", D.letters.reduce((a, ch) => a + chaldean9Value(ch.charCodeAt(0)), 0)],
         ["gematria", D.letters.reduce((a, ch) => a + gematria(ch.charCodeAt(0)), 0)],
         ["alphanum.", D.letters.reduce((a, ch) => a + ANQ[ch.charCodeAt(0) - 65], 0)],
         ["A=10…Z=35", D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0)],
