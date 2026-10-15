@@ -104,6 +104,7 @@ reorders and filters within the cards that already exist.
 | **birthday** | 4 | Systems that take numerals: dates, years, phone numbers |
 | **layout** | 10 | The grids, pyramids and trees |
 | **qabbalah** | 3 | Gematria, alphanumerical, sephirotic |
+| **reference** | 5 | Lookup tables: symbology, life path, Chaldean, sephirotic, Lo Shu |
 
 **`name` is narrower than it looks, on purpose.** It drops the two numeral-only
 cards, and it also drops **Morse** and the **Modular** card, because neither is
@@ -462,5 +463,6 @@ being fixed and why the previous behaviour was wrong. Read them before assuming
 a number is a typo â€” most of them were not.
 
 There is no remote configured; this repository is local backup only.
+
 
 

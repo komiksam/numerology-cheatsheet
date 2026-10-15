@@ -52,7 +52,8 @@
     { id: "name",     label: "name",     title: "systems that calculate a personal name" },
     { id: "birthday", label: "birthday", title: "systems that take numerals: dates, years, numbers" },
     { id: "layout",   label: "layout",   title: "the grids, pyramids and trees" },
-    { id: "qabbalah", label: "qabbalah", title: "gematria, alphanumerical and the sephirotic tree" }
+    { id: "qabbalah", label: "qabbalah", title: "gematria, alphanumerical and the sephirotic tree" },
+    { id: "reference", label: "reference", title: "reference tables and symbology" }
   ];
 
   /** Which grouping the tag row uses at load: tradition | numeral | result | none */
@@ -67,6 +68,7 @@
       of them is a single card. "*" means everything on. */
   const DEFAULT_TAGS = {
     none:      ["*"],
+    reference: ["*"],
     tradition: ["pythagorean", "chaldean", "qabbalah", "chinese", "modern", "arithmetic"],
     numeral:   ["digits", "1-9", "1-8", "10-35", "1-400", "11-32", "other"],
     result:    ["*"]            // "*" means every result group is on
@@ -1859,7 +1861,152 @@
     }
   },
 
+
+
   ];
+
+(function () {
+  var entryBlock = function (rows) {
+    return rows.map(function (pair) {
+      return "<h4>" + pair[0] + "</h4><p>" + pair[1] + "</p>";
+    }).join("");
+  };
+  var ref = function (d) {
+    return {
+      id: d.id,
+      views: d.views,
+      tag: d.tag,
+      trad: d.trad,
+      num: d.num,
+      title: d.title,
+      note: d.note,
+      html: function () {
+        return '<div class="bigrow"><div class="big">&mdash;</div><div class="meta">' +
+          '<div><span class="k">entries</span><b data-n="n">' + d.rows.length + '</b></div>' +
+          '<div><span class="k">source</span><b>' + d.source + '</b></div></div></div>' +
+          '<div class="sectitle">reference</div><div class="nq-ctl">' + d.front + '</div>';
+      },
+      back: function () {
+        return "<p>" + d.lede + "</p>" + entryBlock(d.rows);
+      },
+      update: function (n, D) {
+        n.val.textContent = "\u2014";
+        n.n.textContent = d.rows.length;
+        if (D) D.copy = d.title;
+      }
+    };
+  };
+
+  var r1_9 = function (entries) { return entries; };
+  SYSTEMS.push(ref({
+    id: "ref_core", views: ["general", "reference"], tag: "pythagorean", trad: "pythagorean", num: "1-9",
+    title: "Reference: standard 1-9 meanings", source: "Cheiro-derived Western", lede:
+      "The core meanings the sheet reduces to. Masters 11, 22 and 33 are added beneath.",
+    rows: [
+      ["1", "Leadership and independence: initiative, self-reliance, direction."],
+      ["2", "Partnership and diplomacy: cooperation, balance, reconciliation."],
+      ["3", "Expression and creativity: communication, imagination, sociability."],
+      ["4", "Diligence and foundation: construction, hard work, structure."],
+      ["5", "Freedom and change: adaptability, travel, adventure."],
+      ["6", "Care and responsibility: family, service, harmony."],
+      ["7", "Insight and solitude: analysis, inner life."],
+      ["8", "Power and mastery: material ambition, authority."],
+      ["9", "Compassion and completion: humanitarian concern, fulfilment."],
+      ["11", "Intuition and illumination, carried unreduced."],
+      ["22", "The master builder, carried unreduced."],
+      ["33", "The master teacher, carried unreduced."]
+    ],
+    front: "1 leadership / 2 partnership / 3 expression / 4 diligence / 5 freedom / 6 care / 7 insight / 8 power / 9 completion - masters 11, 22, 33",
+    note: "A standing lookup for the meanings the Pythagorean and digital-root cards reduce to."
+  }));
+
+  SYSTEMS.push(ref({
+    id: "ref_life", views: ["general", "reference", "birthday"], tag: "arithmetic", trad: "arithmetic", num: "digits",
+    title: "Reference: life path numbers 1-9", source: "Western numerology", lede:
+      "Reading a life path number as an arc. Life path is calculated from the birth " +
+      "date only; it is not changed by later names.",
+    rows: [
+      ["1", "Initiating. Self-directed, independent, early to carry responsibility."],
+      ["2", "Mediating. Partnership, receptivity, reconciler. Risk: losing shape."],
+      ["3", "Expressing. Creative, communicative, optimistic. Risk: scattering."],
+      ["4", "Structuring. Builders and organisers, dutiful. Risk: rigidity."],
+      ["5", "Exploring. Freedom, movement, travel. Risk: restlessness."],
+      ["6", "Caring. Home, responsibility, nurture. Risk: over-carrying."],
+      ["7", "Investigating. Analysis, inner life, search for meaning. Risk: withdrawal."],
+      ["8", "Manifesting. Authority and material ambition. Risk: power over value."],
+      ["9", "Relating widely. Humanitarian endings, leaving something behind. Risk: overextension."],
+      ["11, 22, 33", "Carried as intensified form of the root digit rather than reduced."]
+    ],
+    front: "1 initiating / 2 mediating / 3 expressing / 4 structuring / 5 exploring / 6 caring / 7 investigating / 8 manifesting / 9 completing - masters 11, 22, 33",
+    note: "A standing lookup for the number the life path card reduces to."
+  }));
+
+  SYSTEMS.push(ref({
+    id: "ref_chal", views: ["general", "reference", "name"], tag: "chaldean", trad: "chaldean", num: "1-8",
+    title: "Reference: Chaldean 1-8 and masters", source: "published Chaldean table", lede:
+      "The published Chaldean cipher groups letters by sound, stops at eight, " +
+      "preserves zero on a balance, and carries masters 11, 22, 33. Zero is read " +
+      "as balance rather than any character number.",
+    rows: [
+      ["1", "A, I, J, Q, Y. Independence and leadership, sharpened by sound-grouping."],
+      ["2", "B, K, R. Cooperation, tact, partnership."],
+      ["3", "C, G, L, S. Expression, sociability, creativity."],
+      ["4", "D, M, T. Diligence, foundation, steady effort."],
+      ["5", "E, H, N, X. Freedom, change, communication."],
+      ["6", "U, V, W. Care, family, responsibility."],
+      ["7", "O, Z. Insight, the inner life, analysis."],
+      ["8", "F, P. Material mastery, power, organisation."],
+      ["0", "Consonants and vowels balance exactly. Read as balance, not as a character."],
+      ["11", "Intuition and illumination, carried rather than reduced."],
+      ["22", "The master builder, carried rather than reduced."],
+      ["33", "The master teacher, carried rather than reduced."]
+    ],
+    front: "1 A I J Q Y / 2 B K R / 3 C G L S / 4 D M T / 5 E H N X / 6 U V W / 7 O Z / 8 F P / 0 balance / masters 11, 22, 33",
+    note: "The published Chaldean table is never reduced past eight except for masters."
+  }));
+
+  SYSTEMS.push(ref({
+    id: "ref_sep", views: ["general", "reference", "name"], tag: "qabbalah", trad: "qabbalah", num: "11-32",
+    title: "Reference: sephirotic 1-9", source: "22 paths", lede:
+      "The qabbalah card on this sheet reduces each path to the root sephirah that " +
+      "it connects from. Malkuth, the tenth, is not a path root.",
+    rows: [
+      ["1", "Kether, the crown: source, will, first impulse."],
+      ["2", "Chokmah, wisdom: raw force, creation in motion."],
+      ["3", "Binah, understanding: form, mother principle, limitation."],
+      ["4", "Chesed, mercy: expansion, authority, abundance."],
+      ["5", "Geburah, severity: strength, discipline, courage."],
+      ["6", "Tiphareth, beauty: harmony, reconciliation, the solar centre."],
+      ["7", "Netzach, victory: instinct, desire, endurance."],
+      ["8", "Hod, glory: thought, language, correspondence."],
+      ["9", "Yesod, foundation: reflection, imagination, dream."]
+    ],
+    front: "1 Kether / 2 Chokmah / 3 Binah / 4 Chesed / 5 Geburah / 6 Tiphareth / 7 Netzach / 8 Hod / 9 Yesod - Malkuth is the field they act in, not a path start",
+    note: "Reference table for the sephirotic reduction."
+  }));
+
+  SYSTEMS.push(ref({
+    id: "ref_loshu", views: ["general", "reference"], tag: "chinese", trad: "chinese", num: "1-9",
+    title: "Reference: Lo Shu directions and phases", source: "Later Heaven orientation", lede:
+      "Lo Shu is read through feng shui: each figure is a direction, a season and " +
+      "a phase. None of these are the Western 1-9 meanings, and they are borrowed " +
+      "when they are applied here.",
+    rows: [
+      ["1", "Water. North, winter, flow and career."],
+      ["2", "Earth. South-west, late summer, stability and partnership."],
+      ["3", "Wood. East, spring, movement and beginnings."],
+      ["4", "Wood. South-east, late spring, flexibility and growth."],
+      ["5", "Earth. Centre, all seasons, balance point of the square."],
+      ["6", "Metal. North-west, autumn, authority and mentors."],
+      ["7", "Metal. West, late autumn, communication and completion."],
+      ["8", "Earth. North-east, transition, independence."],
+      ["9", "Fire. South, summer, recognition and expansion."]
+    ],
+    front: "1 north water winter / 2 south-west earth / 3 east wood spring / 4 south-east wood / 5 centre earth / 6 north-west metal autumn / 7 west metal / 8 north-east earth / 9 south fire",
+    note: "Reference table for the Lo Shu reduction."
+  }));
+})();
+
 
   /* ==========================================================================
      4b. INTERPRETATION
