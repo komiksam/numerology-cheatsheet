@@ -148,11 +148,13 @@
      shape and sound, which is the usual modern numerology chart:
      A-Q take the 17 first Hebrew letters in order (Aleph 1 ... Peh 80),
      then R=Resh, S=Shin, T=Tav, U=Ayin, V=Beth, W=Shin, X=Samekh,
-     Y=Aleph, Z=Zayin. The glyph column below matches these values exactly. */
+     Y=Aleph, Z=Zayin. The glyph column below matches these values exactly —
+     including K and Q, which take the medial forms Caph and Pe, not the
+     finals Kaf and Peh that carry 500 and 800. */
   const GEMATRIA = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80,
                     200, 300, 400, 70, 2, 300, 60, 1, 7];
   const HEB_LETTER = ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י",
-                      "ך", "ל", "מ", "נ", "ס", "ע", "ף", "ר", "ש", "ת",
+                      "כ", "ל", "מ", "נ", "ס", "ע", "פ", "ר", "ש", "ת",
                       "ע", "ב", "ש", "ס", "א", "ז"];
   const gematria = code => {
     const i = code - 65;
@@ -412,7 +414,7 @@
       '<p>The only genuinely mathematical card on this sheet. Everything else is a convention that people agreed on; ' +
       'digital reduction is a well-defined operation that anyone can check.</p>' +
       "<h4>Method</h4><p>Add the digits, then repeat on the result until a single digit is left. " +
-      "This is congruent to the number modulo 9 — which is why 1995, 2004 and 1996 all land on 7 " +
+      "This is congruent to the number modulo 9 — which is why 1995, 2004 and 2013 all land on 6 " +
       "despite being different numbers, and why the reduction never loses information about the residue.</p>" +
       "<h4>Why 9 and not 0</h4><p>Strict modulo gives 0 for 18, 45 or 999. Numerology returns 9, on the older " +
       "reading of nine as the number of completion rather than of nothing. If you want the strict residue, it " +
@@ -492,7 +494,7 @@
   /* ---------- classic ---------- */
   {
     id: "pyth", tag: "pythagorean", trad: "pythagorean", num: "1-9", title: "Pythagorean",
-    note: "Letters repeat the 1-9 cycle from A. Vowels (A E I O U) and consonants are totalled separately, then added together; the master number that survives the final reduction is the result. Any digits in the input are ignored here — they belong to the date systems, not the name systems.",
+    note: "Letters repeat the 1-9 cycle from A. Vowels (A E I O U) and consonants are totalled separately, then added together; the master number that survives the final reduction is the result. Any digits in the input are ignored here — they belong to the date systems, not the name systems. Chaldean is often described as the same idea; it is not. Chaldean runs 1-9 only for A to I and then never restarts the cycle — every letter from J to Q is 2 and every letter from R to Z is 3, so J is no longer worth the same as A.",
     back: () =>
       "<p>A1Z26 with the tail cut off. The sequence runs 1 to 9 and then starts again at 1, so J is worth the " +
       "same as A and R is worth 9. Chaldean is often described as the same idea; it is not — Chaldean stops the " +
@@ -551,8 +553,10 @@
       "which is why published tables of Chaldean results disagree with one another. The version implemented here, " +
       "and the most common in practice, collapses that sequence to the difference between the consonant count and " +
       "the vowel count.</p>" +
-      "<h4>Worked example</h4><p><code>ANDREA</code> totals 15. Subtracting the vowels (A, E, A = 3) leaves 12. " +
-      "There are three consonants and three vowels, so the difference is 0 — and Chaldean returns <span class=\"k\">0</span>.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> totals 16 (A 1, N 2, D 4, R 3, E 5, A 1). Subtracting the " +
+      "vowels in written order, A + E + A = 7, leaves 9. Subtracting the consonants, N + D + R = 9, leaves 0 — " +
+      "and the count difference gives the same answer, 3 consonants against 3 vowels. Chaldean returns " +
+      "<span class=\"k\">0</span>.</p>" +
       "<h4>Two Chaldean tables exist</h4><p>This is the modern one. An older <b>Chaldean 1–8</b> table, which " +
       "assigns no letter a nine on the grounds that the figure is sacred, is used by the Triangle of Life card — " +
       "the two are separate tables, not a disagreement about the same one.</p>" +
@@ -730,11 +734,11 @@
       "different from the absolute value.</p>" +
       "<h4>Worked example</h4><p><code>HELLO</code> — Heth 8, Heh 5, Lamed 30, Lamed 30, Samekh 60. " +
       "Absolute: 133, which reduces to 7. Katan: 8+5+3+3+6 = 25, which also reduces to 7.</p>" +
-      "<h4>Relationship to the others</h4><p>Not the same as the alphabetical card. That one adds nine to each " +
-      "letter's alphabet position (A = 10 … Z = 35) and totals 666 for <code>Of man's first disobedience " +
-      "and the fruit</code>; this one reads the Latin letters into the 22 Hebrew letters and totals 1791 " +
-      "for the same phrase. Sources swap the names “alphanumerical” and “alphabetical” between the two, so " +
-      "the rule is the safer thing to go on.</p>",
+      "<h4>Relationship to the others</h4><p>Not the same as the <code>hebrew order</code> row above. That one " +
+      "adds nine to each letter's alphabet position (A = 10 … Z = 35) and totals 666 for <code>Of man's first " +
+      "disobedience and the fruit</code>; this one reads the Latin letters into the 22 Hebrew letters and totals " +
+      "1791 for the same phrase. Sources swap the names “alphanumerical” and “alphabetical” between the two " +
+      "schemes, so the rule is the safer thing to go on.</p>",
     html: () =>
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
         '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
@@ -925,7 +929,7 @@
 
   {
     id: "pythchart", tag: "triangle", trad: "pythagorean", num: "1-9", title: "Pythagorean chart — 45 cells",
-    note: "The full Pythagorean chart: nine rows of 9, 8, 7 … 1 cells, forty-five in all. Each figure owns a diagonal — 1 gets a single cell at the point, 9 gets nine along the top edge — so a name whose letters are mostly low numbers crowds into the narrow end of the triangle.",
+    note: "The full Pythagorean chart: nine rows of 9, 8, 7 … 1 cells, forty-five in all. Each figure owns a diagonal — 1 gets a single cell in the top-left corner, 9 gets nine running from the top-right corner down to the point — so a name whose letters are mostly low numbers crowds into the wide top of the triangle.",
     html: () =>
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
         '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
@@ -986,9 +990,11 @@
       "<p>The complete Pythagorean chart, rather than the three-by-three fragment usually reproduced. It has " +
       "nine rows of nine, eight, seven … one cells — forty-five cells in all, which is why the name is " +
       "attached to that figure.</p>" +
-      "<h4>How the cells are assigned</h4><p>The cell on row r, position p, carries figure r + p − 1. Because " +
-      "each figure therefore sits on one unbroken diagonal, figure 1 owns a single cell at the point and figure 9 " +
-      "owns nine along the top edge.</p>" +
+      "<h4>How the cells are assigned</h4><p>The cell on row r, position p, carries figure r + p − 1, so figure v " +
+      "appears exactly once on each of rows 1 to v. That is what puts every figure on one unbroken diagonal: " +
+      "figure 1 owns a single cell in the top-left corner, and figure 9 owns nine — one in every row, running " +
+      "from the top-right corner down to the point. The top edge therefore holds all nine figures once each, and " +
+      "the point holds figure 9.</p>" +
       "<h4>Why a long name looks wrong</h4><p>Because the chart has no spare capacity at the low end. A name full " +
       "of ones and twos crowds dozens of letters into one or two cells, while a single nine has nine cells to " +
       "itself. The <code>crowded</code> row names the figures that overflow and by how much.</p>" +
@@ -1013,8 +1019,8 @@
       "partly filled stays empty.</p>" +
       "<h4>Capacity</h4><p>Six rows of three hold eighteen letters. Beyond that the pyramid simply runs out — " +
       "there is no agreed continuation, which is why long names need a different display.</p>" +
-      "<h4>Worked example</h4><p><code>ANDREA</code> fills rows A / N D / R E A and leaves the rest empty, " +
-      "with the base showing 6 letters. The values sum to 15, which reduces to 6.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> fills rows A / N D / R E A — six letters over three rows, " +
+      "leaving rows four to six empty. The values sum to 16, which reduces to 7.</p>" +
       "<h4>What it is good for</h4><p>Nothing numerical. Its value is spatial: it shows at a glance where a name " +
       "runs out of letters, which is how practitioners reasoned about the shape before any table was formalised.</p>",
     html: () =>
@@ -1124,8 +1130,8 @@
       "<p>Sometimes called the 3-3-3 grid or the numerology triangle. The letter <em>count</em> is the number " +
       "being reduced here — not the letters' values — so this card deliberately disagrees with most others.</p>" +
       "<h4>The layout</h4><p>Nine cells read left to right, top to bottom: A B C / D E F / G H I. A tenth letter, " +
-      "if the name has one, takes the centre. Most names stop at the ninth cell, which is why the centre is " +
-      "usually empty.</p>" +
+      "if the name has one, joins the centre. The centre is the fifth cell, so any name of five letters or more " +
+      "fills it — it is empty only for very short names, and the trailing cells are the ones that go unfilled.</p>" +
       "<h4>Worked example</h4><p><code>ANDREA</code> places A N D / R E A / and nothing else. Six letters, " +
       "which reduces to 6 — even though the Pythagorean reading of the same name is 7.</p>" +
       "<h4>Master numbers</h4><p>The count is reduced with masters preserved, so a name of eleven letters gives " +
@@ -1235,8 +1241,8 @@
       "values reduced to single digits, grouped three at a time, each group summed to show the next level down. " +
       "Left column: the final group, summed once more.</p>" +
       "<h4>Worked example</h4><p><code>ANDREA</code> gives 1, 5, 4, 9, 5, 1. Those reduce unchanged — every value " +
-      "is already a single digit — so the middle column shows 1+5+4 = 10, 9+5 = 14, 1, and the left column shows " +
-      "10+14+1 = 25, reducing to 7.</p>" +
+      "is already a single digit — so the middle column shows two groups, 1+5+4 = 10 reducing to 1, and " +
+      "9+5+1 = 15 reducing to 6, with a third group empty. The grand total of 25 reduces to 7.</p>" +
       "<h4>What it is for</h4><p>Names with many double-digit letter values make the intermediate levels do real " +
       "work; short names with small letters do not, and every level reads the same. It is a display, not a " +
       "separate system — the headline number is always the Pythagorean result.</p>",
@@ -1293,10 +1299,10 @@
       "32. Paths 1 to 10 are reserved for the ten sephiroth themselves. Reducing a path number gives the sephirah " +
       "it is rooted in: 11 → 2 (Chokmah), 16 → 7 (Netzach), 22 → 4 (Chesed).</p>" +
       "<h4>Worked example</h4><p><code>ANDREA</code> takes paths 11 to 16, summing to 81, which reduces to 9. " +
-      "Individually the letters root at sephiroth 2, 3, 4, 6, 7 and 8 — so the name sits mostly in the middle " +
-      "column of the tree.</p>" +
+      "Individually the letters root at sephiroth 2, 3, 4, 5, 6 and 7 — so the name sits across the middle " +
+      "of the tree, touching Chokmah at the top and Netzach at the base of that run.</p>" +
       "<h4>Relationship to the others</h4><p>This card and the Qabbalah card map the same letters to completely " +
-      "different numbers, because one is counting alphabetical position and the other is indexing a diagram. " +
+      "different numbers, because one sums Hebrew letter values and the other indexes a diagram. " +
       "Both are called Qabbalah, which is precisely why comparing them is useful.</p>",
     html: () =>
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
@@ -1363,8 +1369,8 @@
       "across the nine cells, from the standard deviation of the cell counts. A name that fills every digit " +
       "roughly once is flat; a name that piles into three or four cells is scattered. This is a descriptive " +
       "statistic computed here, not a traditional Qabbalah calculation.</p>" +
-      "<h4>Worked example</h4><p><code>ANDREA</code> reduces to 1, 5, 4, 9, 5, 1 — five of nine digits present, " +
-      "with 2, 3, 6, 7 and 8 missing and three letters sitting in the centre cell.</p>",
+      "<h4>Worked example</h4><p><code>ANDREA</code> reduces to 1, 5, 4, 9, 5, 1 — four of the nine digits " +
+      "present, with 2, 3, 6, 7 and 8 missing and two letters sitting in the centre cell.</p>",
     html: () =>
       '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
         '<div><span class="k">digits present</span><b data-n="nd">0</b></div>' +
@@ -1487,8 +1493,8 @@
       "<h4>Why it feels right</h4><p>Because it is the one table people already carry in their heads. Most of " +
       "the web presence of numerology is really this method, often presented alongside the claim that names " +
       "should match a phone number or a house number.</p>" +
-      "<h4>Worked example</h4><p><code>ANDREA</code> reads 263529, which sums to 27 and reduces to 9. " +
-      "Note that the modern system has no notion of master numbers: 27 becomes 9, never 27 or 9-and-9.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> reads 263732, which sums to 23 and reduces to 5. " +
+      "Note that the modern system has no notion of master numbers: 23 becomes 5, never 5-and-5.</p>" +
       "<h4>Caveat</h4><p>The layout is twentieth-century. It was designed to fit letters onto twelve keys, not " +
       "to carry meaning, and no early tradition used it.</p>",
     html: () =>
@@ -1528,14 +1534,16 @@
     back: () =>
       "<p>Not a numerological system at all. This card exists to let you work out in advance which of the other " +
       "cards are even capable of agreeing with each other.</p>" +
-      "<h4>Residues</h4><p>Two numbers reduced by digital root always agree when they are congruent modulo 9, " +
-      "and can never agree otherwise. The residue grid makes that visible: if the raw sums differ but the mod-9 " +
-      "column matches, the two cards are obliged to give the same answer.</p>" +
-      "<h4>Alphabet comparison</h4><p>Every letter table on this sheet in one place, with its raw total, its " +
-      "reduction and its residues. Three of these seven rows will usually agree by coincidence alone.</p>" +
-      "<h4>Worked example</h4><p><code>ANDREA</code> — Pythagorean 66, Chaldean 15, gematria 261, telephone 27. " +
-      "Four different sums for six letters. Their roots land on 3, 6, 9 and 9 respectively; the telephone and " +
-      "gematria rows agree only because 27 and 261 share a residue.</p>" +
+      "<h4>Residues</h4><p>Two sums reduced by plain digital root agree exactly when they are congruent modulo 9, " +
+      "and can never agree otherwise. Most cards here preserve master numbers, and that breaks the rule: 11 and 20 " +
+      "are both 2 modulo 9, yet reduce to 11 and 2. So a matching mod-9 column means two cards are <em>allowed</em> " +
+      "to agree, not that they must.</p>" +
+      "<h4>Alphabet comparison</h4><p>Ten measures in one place, with raw totals, reductions and residues. Not " +
+      "every card is listed — the sephirotic tree, Morse, Lo Shu and the count-based cards do not reduce a single " +
+      "shared alphabet, so they have no row here.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> — Pythagorean 25, Chaldean 16, gematria 261, telephone 23. " +
+      "Four different sums for six letters. Their roots land on 7, 7, 9 and 5; the Pythagorean and Chaldean rows " +
+      "agree because 25 and 16 share a residue, while gematria and telephone cannot.</p>" +
       "<h4>How to use it</h4><p>Read this card first. If the tables you care about cannot agree, no amount of " +
       "care in typing the name will change that.</p>",
     html: () =>
@@ -1606,8 +1614,8 @@
       "sheet. Every table gives some number for a name, but they all agree on how long it is, which is why " +
       "length is often used as the neutral tie-breaker between two systems.</p>" +
       "<h4>Reading it</h4><p>The per-word chips show count and root for each word separately. A name split 7-2 " +
-      "is a different shape from one split 5-4 even when both total nine — which is the only thing this card " +
-      "sees that the others miss.</p>" +
+      "is a different shape from one split 5-4 even when both total nine — a distribution no letter-value card " +
+      "on this sheet can show you.</p>" +
       "<h4>Master numbers</h4><p>The count is reduced with masters preserved, so eleven letters give 11, " +
       "twenty-two give 22 and thirty-three give 33.</p>" +
       "<h4>Worked example</h4><p><code>ALEKSANDR PUSHKIN</code> — sixteen letters in two words, averaging 8.0 " +
@@ -2090,7 +2098,8 @@
     '<div class="nq-foot">' +
       "<b>Master numbers.</b> 11, 22 and 33 are kept unreduced inside the letter systems and outlined in gold; " +
       "plain digital root can never produce them. &nbsp;<b>Zero.</b> Chaldean keeps 0 as 0, because digits contribute " +
-      "nothing to its letter total, while every other system applies the 0 &rarr; 9 rule. &nbsp;<b>Tags.</b> " +
+      "nothing to its letter total. Chaldean also never applies the 0 &rarr; 9 rule, so a balanced name reads " +
+      "0 rather than 9, while every other system folds 0 up to 9. &nbsp;<b>Tags.</b> " +
       "The pills above regroup by tradition, by the numeral each system uses, or by the figure each card " +
       "currently returns; “no grouping” lists every card on its own. Click one to show or hide it. " +
       "Which ones start on is the DEFAULT_TAGS object at the top of the script." +
