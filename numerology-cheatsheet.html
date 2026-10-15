@@ -1687,6 +1687,285 @@
   ];
 
   /* ==========================================================================
+     4b. INTERPRETATION
+
+     Two things per card: `kw`, the short keyword strip shown under the note on
+     the front, and `read`, the longer passage shown at the foot of the back.
+     `kw[0]` is the label chip and gets the stronger outline.
+
+     One rule governs the content, and it is not "be generous". Where a system
+     has a real interpretive tradition the reading given is that one, not the
+     Western core meanings it superficially resembles. Where it has none, the
+     card says so plainly instead of borrowing an interpretation from a
+     neighbouring card - that is what makes the gaps between these readings
+     informative rather than decorative. Six of the nineteen carry no reading
+     at all, and that is the honest answer for them.
+
+     The core meanings quoted throughout (1 leadership, 2 partnership,
+     3 expression, 4 diligence, 5 freedom, 6 care, 7 insight, 8 power,
+     9 compassion, and the masters 11 intuition, 22 the master builder,
+     33 the master teacher) are the standard Cheiro-derived set, and apply to
+     any card that reduces a name to a single digit.
+     ========================================================================== */
+
+  const MEANING = {
+    simple: {
+      kw: ["core 1–9", "9 is completion", "never 0, never a master"],
+      read: () =>
+        "<h4>What the figure is read as</h4>" +
+        "<p>The reduced number is read through the standard core meanings — the " +
+        "same set every card on this sheet uses once it has reduced:</p>" +
+        "<p><b>1</b> leadership and independence · <b>2</b> partnership and " +
+        "diplomacy · <b>3</b> expression and creativity · <b>4</b> diligence and " +
+        "foundation · <b>5</b> freedom and change · <b>6</b> care, family and " +
+        "responsibility · <b>7</b> insight and solitude · <b>8</b> power and " +
+        "mastery · <b>9</b> compassion and completion.</p>" +
+        "<p>Plain digital root produces none of 11, 22 or 33, so a master " +
+        "number is not part of its vocabulary at all.</p>"
+    },
+
+    reverse: {
+      kw: ["no reading", "checksum", "order-independent"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>None, deliberately. This card exists to show that reading the digits " +
+        "backwards cannot change the result, and any meaning hung on it would " +
+        "contradict the card directly above. It earns its place as a checksum on " +
+        "the other digit cards, not as a source of readings.</p>"
+    },
+
+    pyth: {
+      kw: ["Pythagorean", "expression / name number", "vowels = soul", "consonants = personality"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>This is the system most numerology actually uses, and it is the one " +
+        "that supplies the core meanings quoted on the digital-root card. In name " +
+        "work the headline is the <em>expression</em> number, sometimes called the " +
+        "name number: the sum of every letter of the full name at birth.</p>" +
+        "<p>The split this card keeps is traditional, not cosmetic. The vowels are " +
+        "read as the <em>soul</em> number — the heart's desire, what the person " +
+        "wants underneath — and the consonants as the <em>personality</em> number, " +
+        "what they present to the world. That is the reason for totalling them " +
+        "apart before combining, and the reason the two halves are shown " +
+        "separately here.</p>"
+    },
+
+    chaldean: {
+      kw: ["Chaldean", "expression", "consonants − vowels", "0 stays 0"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>The core meanings are the same ones the Pythagorean card uses — the two " +
+        "differ in how they total, not in what the result means — with one real " +
+        "addition. Because this card preserves masters, a name can also land on " +
+        "<b>11</b> intuition and illumination, <b>22</b> the master builder, or " +
+        "<b>33</b> the master teacher. Each is the near-completed form of its own " +
+        "root — 2, 4 and 6 — carried before being reduced.</p>" +
+        "<p>A zero result has no counterpart in the other systems and is not read " +
+        "as anything in particular; it records a name whose consonants and vowels " +
+        "balance exactly.</p>"
+    },
+
+    qabbalah: {
+      kw: ["Qabbalah", "gematria", "no native reading", "root = core meanings"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>Gematria carries no interpretation of its own. It is a method of " +
+        "<em>totalling</em>, and historically it was used for scriptural " +
+        "wordplay, for comparing words and for argument — not for describing a " +
+        "person. Reducing the total to a single digit is a later Western " +
+        "numerological step, and the figure it produces is then read with the " +
+        "borrowed core meanings, not with anything derived from the Qabbalah.</p>" +
+        "<p>The triangle and the 13-square are working tools. They show how the " +
+        "letters distribute through the structure; they do not carry readings.</p>"
+    },
+
+    anglossic: {
+      kw: ["Qabbalah", "mispar hechrachi", "mispar katan", "no native reading"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>Same position as the gematria card: the table is a cipher, not a system " +
+        "of meanings. Its two totals — the absolute value and the katan — both " +
+        "reduce like any other sum, so both land in the borrowed core meanings. " +
+        "What is distinctive is that one name can therefore produce two different " +
+        "figures, and a practitioner reads whichever of the two their tradition " +
+        "treats as primary.</p>" +
+        "<p>Worth noting that the heaviest documented user of this table, Crowley, " +
+        "used it for letter substitution in ritual and cipher work rather than for " +
+        "character analysis.</p>"
+    },
+
+    tolife: {
+      kw: ["no traditional reading", "distribution", "runs are arithmetic"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>There is no traditional interpretation of the apex figure, and the " +
+        "repeated runs this card highlights certainly carry none — the control " +
+        "line beneath them prices what chance alone produces. Some practitioners " +
+        "treat a row of 777 as a message; the arithmetic does not support it, and " +
+        "the card says so rather than repeating the claim.</p>" +
+        "<p>Read this card as distribution instead: how the letters share across " +
+        "the eight or nine values of whichever table is selected, and which " +
+        "figures the name never touches. That is a description of the name's " +
+        "letters, not a prediction.</p>"
+    },
+
+    pythchart: {
+      kw: ["layout only", "no reading", "crowding is the signal"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>None of its own. This is the Pythagorean table drawn in full, and it " +
+        "returns the identical number to the Pythagorean card — read it with those " +
+        "meanings.</p>" +
+        "<p>What the chart contributes is shape. Which diagonals a name crowds into " +
+        "and which it never reaches is used as a comment on how evenly the name's " +
+        "attention is distributed. That is a description of the letters, and it is " +
+        "the same information the Lo Shu card gives in a different arrangement.</p>"
+    },
+
+    chpyr: {
+      kw: ["layout only", "no reading", "shape of the name"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>None. The pyramid is how the published Chaldean values were written out " +
+        "by hand — three letters to a row, stepping right — and its total reduces to " +
+        "the same expression number the Chaldean card produces. Read that number " +
+        "with the core meanings; the arrangement of filled rows is the only thing " +
+        "unique to this card, and it describes how long the name is, nothing more.</p>"
+    },
+
+    chrev: {
+      kw: ["mirror only", "no reading", "identical total, always"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>None, and none is possible. The total is identical to the forward " +
+        "pyramid for every input, so this card carries exactly the same expression " +
+        "number and therefore exactly the same core meaning. It is included to make " +
+        "that visible rather than to be read.</p>"
+    },
+
+    affirm: {
+      kw: ["letter count", "modern display", "no prescribed grid"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>The only figure here is the length of the name, and length is treated " +
+        "in numerology as a structural number rather than an alphabetical one. The " +
+        "conventional reading is that short names come out concentrated and direct, " +
+        "and long names diffuse and spread across many interests. That is a " +
+        "convention about shape, not a system with a table behind it.</p>" +
+        "<p>The count itself reduces through the core meanings like anything else. " +
+        "As the card already notes, no historical text prescribes this grid.</p>"
+    },
+
+    pyth3: {
+      kw: ["layout only", "three roots", "distribution"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>The grand total is the Pythagorean expression number and carries the " +
+        "standard core meaning. The three column roots have no separate meanings of " +
+        "their own — read across they are a picture of how the name's weight " +
+        "distributes, and an uneven split is said to indicate an uneven " +
+        "temperament.</p>" +
+        "<p>That is the whole of it: one interpretation, three ways of seeing how " +
+        "it was assembled.</p>"
+    },
+
+    p3: {
+      kw: ["layout only", "same arithmetic", "one figure"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>One number, read with the Pythagorean meaning. Every intermediate level " +
+        "is a restatement of the same sum, so none of them contributes a separate " +
+        "reading. Like the 3-column card, it is useful for watching the letters " +
+        "group, not for generating extra figures to interpret.</p>"
+    },
+
+    seph: {
+      kw: ["tree of life", "10 sephiroth", "paths, not letters", "real tradition"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>This is the one Qabbalah card on the sheet with a genuine interpretive " +
+        "tradition behind it. The 22 paths are a real body of doctrine: each is a " +
+        "named conduit between two sephiroth, carrying its own associations, and " +
+        "reading them means learning those names. The figures here are not a " +
+        "numerological table in that sense.</p>" +
+        "<p>What this card reduces each letter's path to is its <em>root sephirah</em>. " +
+        "The nine above the Abyss are 1 Kether, the crown; 2 Chokmah, wisdom; " +
+        "3 Binah, understanding; 4 Chesed, mercy; 5 Geburah, severity; " +
+        "6 Tiphareth, beauty; 7 Netzach, victory; 8 Hod, glory; and 9 Yesod, " +
+        "foundation. Malkuth, the tenth, is where all of them manifest and is not a " +
+        "path root.</p>" +
+        "<p>One caution: the headline digit would still be read with the borrowed " +
+        "core meanings, and that reading is Pythagorean rather than Kabbalic. The " +
+        "two should not be run together.</p>"
+    },
+
+    loshu: {
+      kw: ["chinese", "directions & elements", "missing digits", "centre 5"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>The Lo Shu is read through feng shui, and its traditional associations " +
+        "are positional rather than personal. Each figure is a direction, a season " +
+        "and a phase: 1 and 6 Water, 2 and 7 Fire, 3 and 8 Wood, 4 and 9 Metal, " +
+        "and 5 Earth at the centre. This card uses the Later Heaven orientation, " +
+        "with 1 at the bottom and 9 at the top. None of that is the Western 1–9 " +
+        "meanings, which are borrowed when they are applied here.</p>" +
+        "<p>What a practitioner actually examines is which digits the name never " +
+        "touches, and how many letters pile into a single cell — the missing and " +
+        "crowded figures. The centre 5 is the balance point of the square. The " +
+        "further claim that a flat distribution means a balanced character is a " +
+        "later Western gloss, not the original use.</p>"
+    },
+
+    morse: {
+      kw: ["no tradition", "invented here", "display only"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>None, and there is no tradition available to draw one from. This card " +
+        "is on the sheet because it happens to separate names that other tables " +
+        "score alike. Any meaning attached to its result would be invented at the " +
+        "moment of reading, so none is offered.</p>"
+    },
+
+    tel: {
+      kw: ["modern", "20th century", "no tradition", "number matching"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>The keypad has no interpretive tradition of its own. Most of what is " +
+        "sold under the name is the Western core meanings borrowed wholesale; " +
+        "applied that way this is the same reading as the Pythagorean card with a " +
+        "different table underneath, and it should not be mistaken for an " +
+        "independent one.</p>" +
+        "<p>The one claim native to the method is the matching one — that a name " +
+        "number should correspond to a phone number or a house number. That is a " +
+        "practical test about practical arrangements, not a reading of character.</p>"
+    },
+
+    math: {
+      kw: ["not a system", "no reading", "arithmetic only"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>Deliberately none. This card is number theory, and a meaning attached " +
+        "to a residue would be pure invention. What it offers is the ability to say " +
+        "in advance which of the other cards are <em>permitted</em> to agree.</p>" +
+        "<p>The honest procedure is therefore to take a reduced figure back to the " +
+        "card that produced it and use that system's meanings, not to read it from " +
+        "here.</p>"
+    },
+
+    len: {
+      kw: ["structural", "length not letters", "shape of the name"],
+      read: () =>
+        "<h4>Reading</h4>" +
+        "<p>Length is treated as a structural number. The conventional reading is " +
+        "that short names are concentrated, direct and single-minded, and long " +
+        "names diffuse and adaptable, spread across many interests — with the " +
+        "per-word split showing how that weight is shared.</p>" +
+        "<p>That is a convention about shape. There is no table behind it, and the " +
+        "count reduces through the same core meanings as any other digit.</p>"
+    }
+  };
+
+  /* ==========================================================================
      5. STYLES
      ========================================================================== */
 
@@ -1751,17 +2030,23 @@
 .nq-list{
   display:grid;
   grid-template-columns:repeat(var(--nq-cols,3),minmax(0,1fr));
-  align-items:start;
+  align-items:stretch;
   gap:var(--nq-gap);
 }
 /* the cards that genuinely need the extra room span the full row; every other
    card is exactly one column wide, whatever the column count is */
 .nq-list > .nq-card.wide{grid-column:1 / -1}
 
+/* Cards in a row are equal height and the note sits on the card's baseline, so
+   cards of differing content length line up instead of ending raggedly. */
 .nq-card{
   border:1px solid var(--nq-line);border-radius:10px;
   padding:11px 12px 10px;position:relative;background:transparent;
   margin:0;min-width:0;
+  display:flex;flex-direction:column;
+}
+.nq-card > .nq-face[data-face="front"]:not([hidden]){
+  flex:1 1 auto;display:flex;flex-direction:column;min-height:0
 }
 .nq-card.mas{border-color:var(--nq-gold)}
 .nq-head{display:flex;align-items:baseline;gap:8px;margin-bottom:9px;padding-right:92px;flex-wrap:wrap}
@@ -1800,10 +2085,46 @@
 .nq-back em{color:inherit;font-style:italic}
 .nq-back .k{color:var(--nq-gold)}
 
+/* the note + keyword strip sit on the card's baseline; the wrapper takes the
+   slack, so short cards do not end raggedly and none ever ends up cramped */
+.nq-base{margin-top:auto}
 .nq-note{
-  margin-top:9px;padding-top:8px;border-top:1px dashed var(--nq-line);
+  margin-top:7px;padding-top:8px;border-top:1px dashed var(--nq-line);
   font-size:11px;line-height:1.55;color:var(--nq-dim);
 }
+
+/* keyword strip at the foot of the front: quiet, the lead chip slightly lifted */
+.nq-kw{
+  margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+}
+.nq-base > .nq-kw:only-child{margin-top:7px}
+.nq-kw .lb{
+  font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--nq-dim);margin-right:1px;
+}
+.nq-kw .w{
+  font-size:10px;line-height:1.35;padding:1px 7px;border-radius:999px;
+  border:1px solid var(--nq-faint);color:var(--nq-dim);
+  background:color-mix(in srgb, var(--nq-gold) 6%, transparent);
+}
+.nq-kw .w.lead{
+  border-color:color-mix(in srgb, var(--nq-gold) 42%, transparent);
+  color:var(--nq-gold);font-weight:600;
+}
+
+/* interpretation block at the foot of the back */
+.nq-read{
+  margin-top:13px;padding:9px 12px;
+  border:1px solid var(--nq-faint);border-left:2px solid var(--nq-gold);
+  border-radius:8px;background:var(--nq-fill);
+}
+.nq-back .nq-read h4{
+  margin:0 0 5px;font-size:9px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--nq-gold);
+}
+.nq-read p{margin:0 0 5px}
+.nq-read p:last-child{margin-bottom:0}
+.nq-read b{color:var(--nq-gold);font-weight:600}
 
 /* ---- result block ---- */
 .nq .bigrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -1817,7 +2138,7 @@
 .nq .meta{display:flex;flex-direction:column;gap:2px;font-size:12px;flex:1;min-width:150px}
 .nq .meta > div{display:flex;gap:8px;align-items:baseline}
 .nq .meta .k{color:var(--nq-dim);min-width:86px}
-.nq .meta b{font-family:var(--nq-mono);font-weight:600}
+.nq .meta b{font-family:var(--nq-mono);font-weight:600;overflow-wrap:anywhere}
 .nq .meta .mn{color:var(--nq-hot)}
 
 /* ---- generic bits ---- */
@@ -2145,6 +2466,20 @@
     const el = document.createElement("section");
     el.className = "nq-card" + (s.wide ? " wide" : "");
     el.dataset.cardtag = s.tag;
+
+    /* interpretation: keyword strip on the front, reading at the foot of the back */
+    const M = MEANING[s.id] || {};
+    const kw = Array.isArray(M.kw) ? M.kw : [];
+    const kwHTML = kw.length
+      ? '<div class="nq-kw"><span class="lb">meaning</span>' +
+        kw.map((k, i) => '<span class="w' + (i ? "" : " lead") + '">' + esc(k) + "</span>").join("") +
+        "</div>"
+      : "";
+    let readHTML = "";
+    if (typeof M.read === "function") {
+      try { readHTML = '<div class="nq-read">' + M.read() + "</div>"; } catch (err) { readHTML = ""; }
+    }
+
     el.innerHTML =
       '<div class="nq-head"><h3>' + esc(s.title) + '</h3><span class="t">' + esc(s.tag) + "</span></div>" +
       '<div class="nq-tools">' +
@@ -2154,9 +2489,12 @@
       "</div>" +
       '<div class="nq-face" data-face="front">' +
         s.html() +
-        '<div class="nq-note">' + esc(s.note) + "</div>" +
+        '<div class="nq-base">' +
+          '<div class="nq-note">' + esc(s.note) + "</div>" +
+          kwHTML +
+        "</div>" +
       "</div>" +
-      '<div class="nq-face nq-back" data-face="back" hidden>' + s.back() + "</div>";
+      '<div class="nq-face nq-back" data-face="back" hidden>' + s.back() + readHTML + "</div>";
 
     listBox.appendChild(el);
 
