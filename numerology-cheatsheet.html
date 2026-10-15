@@ -448,6 +448,160 @@
      ========================================================================== */
 
   const SYSTEMS = [
+  {
+    id: "soulurge", views: ["general", "name"], tag: "pythagorean", trad: "pythagorean", num: "1-9", title: "Soul urge - heart's desire",
+    note: "The Pythagorean vowel sum, taken on its own. What the person wants underneath, separated from what the name as a whole returns.",
+    back: () =>
+      "<p>In standard numerology the <em>soul urge</em>, or heart's desire, is the vowel sum: " +
+      "every vowel in the full name at birth, valued on the Pythagorean table, then reduced with " +
+      "masters preserved. The Pythagorean card on this sheet keeps vowels and consonants apart " +
+      "precisely because this reading exists for vowels alone.</p>" +
+      "<h4>Why it is separate</h4><p>If you add vowels to consonants you get the expression number, " +
+      "which is what the Pythagorean card already shows. Keeping them split is the whole point - " +
+      "the soul number mixes with the personality number only when someone reads the name number, " +
+      "and the mix is a different claim from either part alone.</p>" +
+      "<h4>Hebrew order</h4><p>The total on the same letters by the A = 10 ... Z = 35 order. " +
+      "Shown so this card does not quietly drop the cross-check that every other Pythagorean-derived " +
+      "card on the sheet carries.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">vowels</span><b data-n="v">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">count</span><b data-n="c">0</b></div>' +
+        '<div><span class="k">root</span><b data-n="r">0</b></div>' +
+      '</div></div><div data-n="steps"></div>' +
+      '<div class="sectitle">vowel values - each repeated as it appears</div><div class="chips" data-n="chips"></div>',
+    update(n, D) {
+      const chips = D.letters.filter(ch => VOWELS.has(ch)).map(ch => {
+        const v = pythValue(ch.charCodeAt(0));
+        return '<span class="chip vow"><span class="t">' + ch + '</span>' +
+               '<span class="s">' + v + '</span></span>';
+      }).join("");
+      let vs = 0, vc = 0;
+      D.letters.forEach(ch => { if (VOWELS.has(ch)) { vs += pythValue(ch.charCodeAt(0)); vc++; } });
+      const r = vc > 0 ? masterReduce(vs) : 0, has = vc > 0;
+      n.val.textContent = has ? r : "\u2014";
+      n.hb.textContent = D.letters.reduce((a, ch) => VOWELS.has(ch) ? a + hebrewOrder(ch.charCodeAt(0)) : a, 0);
+      n.val.className = "big " + bigCls(r);
+      n.v.textContent = vs + "  (" + vc + ")";
+      n.c.textContent = vc;
+      n.r.textContent = has ? r : 0;
+      n.steps.innerHTML = has ? steps([vs, op("\u2192"), r]) : "";
+      n.chips.innerHTML = chips || '<span class="empty">no vowels</span>';
+      D.copy = "Soul urge: " + (has ? r : "\u2014");
+    }
+  },
+
+  {
+    id: "personality", views: ["general", "name"], tag: "pythagorean", trad: "pythagorean", num: "1-9", title: "Personality - outer impression",
+    note: "The Pythagorean consonant sum. The face the name presents to other people, kept separate from what lives underneath.",
+    back: () =>
+      "<p>The other half of the Pythagorean split: consonants summed on their own, " +
+      "reduced with masters preserved. Where the soul urge is what the person wants, " +
+      "this is what other people see first, before the vowel reading has any chance to surface.</p>" +
+      "<h4>Method</h4><p>Consonants (everything that is not A E I O U) are given Pythagorean " +
+      "values and reduced, with masters preserved. The vowel count in the header of the " +
+      "Pythagorean card is the same arithmetic carried out on the other half of the split.</p>" +
+      "<h4>Why split them at all</h4><p>Combined, vowels plus consonants, you get the expression " +
+      "number that the Pythagorean card already shows. Read separately, the two often tell " +
+      "contradictory stories about the same name, and that contradiction is a well-known " +
+      "feature of the system rather than a flaw in it.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">consonants</span><b data-n="c">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">count</span><b data-n="cc">0</b></div>' +
+        '<div><span class="k">root</span><b data-n="r">0</b></div>' +
+      '</div></div><div data-n="steps"></div>' +
+      '<div class="sectitle">consonant values - each repeated as it appears</div><div class="chips" data-n="chips"></div>',
+    update(n, D) {
+      const chips = D.letters.filter(ch => !VOWELS.has(ch)).map(ch => {
+        const v = pythValue(ch.charCodeAt(0));
+        return '<span class="chip"><span class="t">' + ch + '</span>' +
+               '<span class="s dim">' + v + '</span></span>';
+      }).join("");
+      let cs = 0, cc = 0;
+      D.letters.forEach(ch => { if (!VOWELS.has(ch)) { cs += pythValue(ch.charCodeAt(0)); cc++; } });
+      const r = cc > 0 ? masterReduce(cs) : 0, has = cc > 0;
+      n.val.textContent = has ? r : "\u2014";
+      n.hb.textContent = D.letters.reduce((a, ch) => !VOWELS.has(ch) ? a + hebrewOrder(ch.charCodeAt(0)) : a, 0);
+      n.val.className = "big " + bigCls(r);
+      n.c.textContent = cs + "  (" + cc + ")";
+      n.cc.textContent = cc;
+      n.r.textContent = has ? r : 0;
+      n.steps.innerHTML = has ? steps([cs, op("\u2192"), r]) : "";
+      n.chips.innerHTML = chips || '<span class="empty">no consonants</span>';
+      D.copy = "Personality: " + (has ? r : "\u2014");
+    }
+  },
+
+  {
+    id: "lifepath", views: ["general", "birthday"], tag: "chinese", trad: "arithmetic", num: "digits", title: "Life path (master-preserving)",
+    note: "The digit card that keeps 11, 22 and 33 instead of folding them. Enter a birth date the way you would read it; separated dates are reduced component by component.",
+    back: () =>
+      "<p>Numerology's central number. It is not a different calculation from " +
+      "digital root but a different <em>stopping rule</em>: when any component reduces " +
+      "to 11, 22 or 33, that intermediate is kept rather than folded again. The same " +
+      "input can therefore give a different figure on this card from the one above it, " +
+      "and that disagreement is the entire point.</p>" +
+      "<h4>How a birth date is handled</h4><p>If the input contains separators, the " +
+      "digits are split into up to three groups and each group is reduced first, so a " +
+      "date that reduces to 11 in a component survives. With eight digits and no " +
+      "separators, the code assumes YYYYMMDD. With six, YYMMDD. With only loose digits, " +
+      "or with letters in the input, the card falls forward to the plain master-preserving " +
+      "sum of every digit, which is the same reading under a different convention.</p>" +
+      "<h4>Master numbers</h4><p>11 intuition, 22 the master builder, 33 the master " +
+      "teacher. These are carried before being reduced; plain digital root on the Simple " +
+      "card above never outputs any of them.</p>" +
+      "<h4>What it cannot do</h4><p>It cannot distinguish a month from a day from a " +
+      "year unless the input tells it, so <em>11 19 1984</em> and <em>19 11 1984</em> " +
+      "produce different paths. Always write the date the way you mean it.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">digits</span><b data-n="dg">0</b></div>' +
+        '<div><span class="k">path</span><b data-n="path">0</b></div>' +
+        '<div><span class="k">raw sum</span><b data-n="s">0</b></div>' +
+        '<div><span class="k">parsed as</span><b data-n="parsed">-</b></div>' +
+      '</div></div><div data-n="steps"></div>' +
+      '<div class="sectitle">component reductions</div><div class="chips" data-n="comps"></div>',
+    update(n, D) {
+      const dgs = D.digits, has = dgs.length > 0;
+      const sep = /[-/.]/.test(D.raw);
+      let groups = [], parsed = "plain";
+      if (sep) {
+        groups = D.raw.split(/[-/.]+/).map(g => g.replace(/\D/g,"")).filter(Boolean);
+        parsed = groups.length >= 2 ? groups.join("  ") : "plain";
+      } else if (/^\d{8}$/.test(D.raw.trim())) {
+        const s = D.raw.trim();
+        groups = [s.slice(0,4), s.slice(4,6), s.slice(6,8)];
+        parsed = "YYYYMMDD";
+      } else if (/^\d{6}$/.test(D.raw.trim())) {
+        const s = D.raw.trim();
+        groups = [s.slice(0,2), s.slice(2,4), s.slice(4,6)];
+        parsed = "YYMMDD";
+      }
+      let pathVal, sum, comps = [];
+      if (groups.length >= 2) {
+        comps = groups.map(g => masterReduce(parseInt(g,10)));
+        sum = comps.reduce((a,b)=>a+b,0);
+        pathVal = masterReduce(sum);
+      } else {
+        sum = dgs.reduce((a,b)=>a+b,0);
+        pathVal = masterReduce(sum);
+        comps = [sum];
+      }
+      n.val.textContent = has ? pathVal : "\u2014";
+      n.dg.textContent = dgs.join(" ") || 0;
+      n.path.textContent = has ? pathVal : 0;
+      n.s.textContent = has ? sum : 0;
+      n.parsed.textContent = has ? parsed : "-";
+      n.val.className = "big " + bigCls(pathVal);
+      if (has) { if (comps.length >= 2) { const _s = comps.reduce((a,b)=>a+b,0); n.steps.innerHTML = steps(comps.reduce((acc,x,i)=> i===0 ? acc.concat([x]) : acc.concat([op("+"), x]), []).concat([op("="), _s, op("\u2192"), pathVal])); } else { n.steps.innerHTML = steps([sum, op("\u2192"), pathVal]); } } else { n.steps.innerHTML = ""; }
+      n.comps.innerHTML = comps.map((v,i) => '<span class="chip' + (masterReduce(v)===v && v > 9 ? " hot" : "") + '"><span class="s">' + v + '</span></span>').join("") || '<span class="empty">none</span>';
+      D.copy = "Life path: " + (has ? pathVal : "\u2014");
+    }
+  },
+
 
   /* ---------- arithmetic ---------- */
   {
@@ -1703,7 +1857,7 @@
       D.copy = "Length: " + nl + " letter" + (nl === 1 ? "" : "s") + " in " + nw +
                " word" + (nw === 1 ? "" : "s") + " → " + (has ? r : "—");
     }
-  }
+  },
 
   ];
 
@@ -1730,6 +1884,21 @@
      ========================================================================== */
 
   const MEANING = {
+
+    soulurge: { kw: ["vowel sum", "heart's desire", "Pythagorean contribution"],
+      read: () => "<h4>Reading</h4><p>Heart's desire and inner motivation - what the " +
+        "person wants underneath, read as a master-preserving Pythagorean vowel reduction. " +
+        "It is kept apart from the personality number precisely because the two say different " +
+        "things about the same name.</p>" },
+    personality: { kw: ["consonant sum", "outer impression", "what others see"],
+      read: () => "<h4>Reading</h4><p>Outer impression - what other people see first. The " +
+        "consonant half of the Pythagorean split, reduced with masters preserved. It often " +
+        "disagrees with the soul number, and that disagreement is part of the reading rather " +
+        "than an anomaly.</p>" },
+    lifepath: { kw: ["life path", "master-preserving", "birth-date driven"],
+      read: () => "<h4>Reading</h4><p>Numerology's central number. It is the digit total " +
+        "stopping at 11, 22 or 33, so it can disagree with the simple digital root on " +
+        "exactly the same input, and that is the whole point of the difference.</p>" },
     simple: {
       kw: ["core 1–9", "9 is completion", "never 0, never a master"],
       read: () =>
