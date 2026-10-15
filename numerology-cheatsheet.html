@@ -1,0 +1,2301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Numerology — Digital Reduction Cheatsheet</title>
+<style>
+  /* Host styling only. Everything the cheatsheet needs is injected by the
+     script below, so that block can be copied into an Obsidian note as-is. */
+  html{color-scheme:light dark}
+  body{margin:0;padding:20px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+</head>
+<body>
+
+<script>
+/* ============================================================================
+   NUMEROLOGY — DIGITAL REDUCTION CHEATSHEET
+   ----------------------------------------------------------------------------
+   One self-contained block: no dependencies, no network, no build step.
+   Everything (markup + styles) is generated here, so this <script> can be
+   pasted straight into an Obsidian note. The UI is inserted immediately before
+   the script tag, uses a transparent background, and derives its colours from
+   `currentColor` so it inherits whichever theme it is rendered in.
+
+   SETTINGS — edit the DEFAULT_TAGS array below to choose which groups of cards
+   are visible on load. Use any tag codename from the list; entries you remove
+   hide that group, entries you add to a new tag show it.
+   ========================================================================== */
+(function () {
+  "use strict";
+
+  /* ==========================================================================
+     0. SETTINGS
+     ========================================================================== */
+
+  /** Which grouping the tag row uses at load: tradition | numeral | result | none */
+  const GROUP_MODE = "none";
+
+  /** How many columns of cards. 0 means "as many as fit". */
+  const COLUMNS = 3;
+  const COLUMN_CHOICES = [0, 1, 2, 3, 4, 5];
+
+  /** Which groups start switched on, per mode. Remove a key to hide that group.
+      In "none" the keys are card ids (simple, pyth, qabbalah, ...) and every one
+      of them is a single card. "*" means everything on. */
+  const DEFAULT_TAGS = {
+    none:      ["*"],
+    tradition: ["pythagorean", "chaldean", "qabbalah", "chinese", "modern", "arithmetic"],
+    numeral:   ["digits", "1-9", "1-8", "10-35", "1-400", "11-32", "other"],
+    result:    ["*"]            // "*" means every result group is on
+  };
+
+  /** Readable names for the group keys, where the key alone is cryptic. */
+  const GROUP_LABELS = {
+    pythagorean: "Pythagorean", chaldean: "Chaldean", qabbalah: "Qabbalah",
+    chinese: "Chinese", modern: "Modern", arithmetic: "Arithmetic",
+    digits: "digits only", "1-9": "1–9", "1-8": "1–8", "10-35": "10–35",
+    "1-400": "1–400", "11-32": "11–32", other: "other"
+  };
+
+  /** Text placed in the input when the page loads. */
+  const INITIAL_INPUT = "Of man's first disobedience and the fruit";
+
+  /** Quick-pick buttons shown above the input. */
+  const PRESETS = ["sam", "sam díaz"];
+
+  /* ==========================================================================
+     1. CORE HELPERS
+     ========================================================================== */
+
+  const reduce = n => {                       // digital root; 0 stays 0
+    n = Math.abs(Math.trunc(n));
+    if (!n) return 0;
+    const r = n % 9;
+    return r === 0 ? 9 : r;
+  };
+  const isMaster = n => n === 11 || n === 22 || n === 33;
+  const chain = n => {                         // true digit chain, e.g. 666 → 18 → 9
+    const out = [n];
+    let v = Math.abs(Math.trunc(n));
+    while (v > 9 && !isMaster(v)) {
+      v = String(v).split("").reduce((a, d) => a + (+d), 0);
+      out.push(v);
+    }
+    return out;
+  };
+  const masterReduce = n => {                  // collapse everything except 11/22/33
+    let v = Math.abs(Math.trunc(n)), guard = 0;
+    while (v > 9 && !isMaster(v) && guard++ < 12) v = reduce(v);
+    return v;
+  };
+  const esc = s => String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const bigCls = n => (isMaster(n) ? "m" + n : n === 0 ? "m0" : "");
+  const finalCls = n => (isMaster(n) ? "s mas" : "s fin");
+  const norm = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const VOWELS = new Set(["A", "E", "I", "O", "U"]);
+
+  /* ==========================================================================
+     2. REFERENCE DATA
+     ========================================================================== */
+
+  // Chaldean: A-I = 1, J-Q = 2, R-Z = 3, digits contribute nothing
+  const chaldeanValue = code => {
+    if (code < 65 || code > 90) return null;
+    const i = code - 64;                        // 1..26
+    return i <= 9 ? i : i <= 17 ? 2 : 3;
+  };
+
+  /* Chaldean 1–8 — the older "no nines" table used with the Triangle of Life.
+     Nine is held sacred and no letter is given it; this is a different table
+     from the modern Chaldean above, not a variant of it. Ç is 8 as well. */
+  const CHALDEAN_8 = {
+    A: 1, I: 1, Q: 1, J: 1, Y: 1,
+    B: 2, K: 2, R: 2,
+    C: 3, G: 3, L: 3, S: 3,
+    D: 4, M: 4, T: 4,
+    E: 5, H: 5, N: 5,
+    U: 6, V: 6, W: 6, X: 6,
+    O: 7, Z: 7,
+    F: 8, P: 8
+  };
+  const chaldean8 = ch => CHALDEAN_8[ch] || 1;
+
+  /* True gematria for the Triangle of Life: A–V take the 22 Hebrew letters in
+     order, W X Y Z have no Hebrew letter and fall back to the Chaldean 1–8
+     figure. Identical to ANQ below for A–V; the four finals differ. */
+  const GEM_TRUE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70,
+                    80, 90, 100, 200, 300, 400];
+  const gemTrue = (ch, code) => {
+    const i = code - 65;
+    return i < 22 ? GEM_TRUE[i] : chaldean8(ch);
+  };
+
+  /* Alphabetical Qabbalah — "Hebrew order", unreduced: A = 10 … Z = 35.
+     Every letter takes its alphabet position plus nine. It is NOT gematria
+     (whose values run 1–400), but folded digit by digit it reproduces the
+     Pythagorean 1–9 cycle exactly, which is what makes it useful: the raw sum
+     is the interesting figure, and the folded one collapses to Pythagorean. */
+  const hebrewOrder = code => (code - 64) + 9;
+
+  // Pythagorean: repeating 1-9 cycle
+  const pythValue = code => (code < 65 || code > 90 ? null : ((code - 65) % 9) + 1);
+
+  /* Qabbalah — Latin gematria. A-V do NOT follow the Mathers table (see ANQ
+     below for that); this card instead borrows the nearest Hebrew letter by
+     shape and sound, which is the usual modern numerology chart:
+     A-Q take the 17 first Hebrew letters in order (Aleph 1 ... Peh 80),
+     then R=Resh, S=Shin, T=Tav, U=Ayin, V=Beth, W=Shin, X=Samekh,
+     Y=Aleph, Z=Zayin. The glyph column below matches these values exactly. */
+  const GEMATRIA = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80,
+                    200, 300, 400, 70, 2, 300, 60, 1, 7];
+  const HEB_LETTER = ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י",
+                      "ך", "ל", "מ", "נ", "ס", "ע", "ף", "ר", "ש", "ת",
+                      "ע", "ב", "ש", "ס", "א", "ז"];
+  const gematria = code => {
+    const i = code - 65;
+    return (i < 0 || i > 25) ? null : GEMATRIA[i];
+  };
+  const hebrewGlyph = code => {
+    const i = code - 65;
+    return (i < 0 || i > 25) ? "" : HEB_LETTER[i];
+  };
+  const circleCell = code => ((code - 65) % 13) + 1;   // 1..13, cell of the 13-square
+  const CIRCLE_13 = "ABCDEFGHIJKLM".split("");        // the 13-letter circle
+
+  /* Anglossic (alphanumerical) Qabbalah.
+     A-V are the 22 Hebrew letters with their absolute values (the Mathers
+     table, Kabbalah Unveiled 1887). The four surplus Latin letters take the
+     final-letter values: W = Vau, X = Samekh, Y = Nun sofit, Z = Tzaddi sofit.
+     Charts differ slightly on W-Z; this is the most commonly published set. */
+  const ANQ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+               200, 300, 400, 6, 60, 700, 900];
+  const ANQ_HEB = ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י",
+                   "כ", "ל", "מ", "נ", "ס", "ע", "פ", "צ", "ק", "ר", "ש", "ת",
+                   "ו", "ס", "ן", "ץ"];
+  const ANQ_NAME = ["Aleph", "Beth", "Gimel", "Daleth", "Heh", "Vau", "Zayin",
+                    "Cheth", "Teth", "Yod", "Caph", "Lamed", "Mem", "Nun",
+                    "Samekh", "Ayin", "Pe", "Tzaddi", "Qoph", "Resh", "Shin", "Tau",
+                    "Vau", "Samekh", "Nun sof.", "Tzaddi sof."];
+  /** mispar katan — the "small value": drop the zeroes (20 → 2, 400 → 4). */
+  const katan = v => (v ? Number(String(v).replace(/0/g, "")) : 0);
+
+  const MORSE = {
+    A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.", H: "....", I: "..",
+    J: ".---", K: "-.-", L: ".-..", M: "--", N: "-.", O: "---", P: ".--.", Q: "--.-", R: ".-.",
+    S: "...", T: "-", U: "..-", V: "...-", W: ".--", X: "-..-", Y: "-.--", Z: "--.."
+  };
+  const DOT = 1, DASH = 2;
+
+  const TEL = {
+    A: 2, B: 2, C: 2, D: 3, E: 3, F: 3, G: 4, H: 4, I: 4, J: 5, K: 5, L: 5,
+    M: 6, N: 6, O: 6, P: 7, Q: 7, R: 7, S: 7, T: 8, U: 8, V: 8, W: 9, X: 9, Y: 9, Z: 9
+  };
+
+  const SEPHIROTH = ["Kether", "Chokmah", "Binah", "Chesed", "Geburah", "Tiphareth", "Netzach", "Hod", "Yesod"];
+  const PATHS = [
+    ["Kether", "Kether"], ["Chokmah", "Chokmah"], ["Binah", "Binah"],
+    ["Chesed", "Geburah"], ["Geburah", "Tiphareth"], ["Tiphareth", "Tiphareth"],
+    ["Netzach", "Hod"], ["Hod", "Yesod"], ["Yesod", "Yesod"],
+    ["Kether", "Chokmah"], ["Chesed", "Geburah"], ["Chokmah", "Binah"],
+    ["Geburah", "Yesod"], ["Netzach", "Hod"], ["Chokmah", "Tiphareth"],
+    ["Chesed", "Tiphareth"], ["Chokmah", "Chesed"], ["Binah", "Tiphareth"],
+    ["Netzach", "Geburah"], ["Hod", "Geburah"], ["Yesod", "Hod"], ["Netzach", "Geburah"]
+  ];
+
+  const LO_SHU = [4, 9, 2, 3, 5, 7, 8, 1, 6];
+
+  /* ==========================================================================
+     3. SVG BUILDERS
+     ========================================================================== */
+
+  /**
+   * Row-based diagram. Each row is an array of cells {main, sub, cls}.
+   *  - shape:"tri"  slanted wedge, used by the Qabbalah pyramid
+   *  - shape:"rect" plain cells, used by the 3-3-3-3-3-3 grids
+   *  - indent n    shifts row n right by n * half a cell (pyramid slope)
+   *  - no indent   centres narrow rows, giving the upside-down triangle
+   */
+  function vTri(rows, opts) {
+    opts = opts || {};
+    const live = (rows || []).filter(r => r && r.length);
+    if (!live.length) return "";          // no cells at all: emit nothing, not a NaN viewBox
+    const rowH = opts.rowH || 44;
+    const pad = 10;
+    const tri = opts.shape !== "rect";
+    const maxCols = Math.max.apply(null, live.map(r => r.length));
+    const colW = (opts.w || 820) / maxCols;
+    const shift = (opts.indent || 0) * colW;
+    const totalW = (maxCols - 1) * colW + shift * (rows.length - 1) + colW + pad * 2;
+    const H = rows.length * rowH + pad * 2;
+    const fs = Math.max(9, Math.min(opts.fs || 15, colW * 0.34));
+    const fsSub = Math.max(8, Math.round(fs * 0.64));
+
+    let s = '<svg viewBox="0 0 ' + totalW.toFixed(1) + " " + H +
+            '" preserveAspectRatio="xMidYMin meet" role="img">';
+    rows.forEach((row, i) => {
+      const y = pad + i * rowH;
+      const x0 = pad + (opts.indent ? shift * i : (maxCols - row.length) / 2 * colW);
+      row.forEach((c, j) => {
+        const x = x0 + j * colW, cx = x + colW / 2, k = 1.5;
+        if (tri) {
+          const pts = [x + k, y + k, x + colW - k, y + k, cx, y + rowH - k, x + k, y + rowH - k].join(" ");
+          s += '<polygon points="' + pts + '" class="tc ' + (c.cls || "") + '"/>';
+        } else {
+          s += '<rect x="' + (x + k) + '" y="' + (y + k) + '" width="' + (colW - k * 2) +
+               '" height="' + (rowH - k * 2) + '" rx="7" class="tc ' + (c.cls || "") + '"/>';
+        }
+        const hasSub = c.sub !== undefined && c.sub !== null && c.sub !== "";
+        const my = hasSub ? y + rowH / 2 - fs * 0.16 : y + rowH / 2 + fs * 0.35;
+        s += '<text class="tm" x="' + cx + '" y="' + my + '" font-size="' + fs + '">' +
+             esc(c.main == null ? "" : c.main) + "</text>";
+        if (hasSub)
+          s += '<text class="ts" x="' + cx + '" y="' + (my + fs * 0.96) + '" font-size="' + fsSub + '">' +
+               esc(c.sub) + "</text>";
+      });
+    });
+    return s + "</svg>";
+  }
+
+  /** Vertical columns of differing heights (the 3 | 9 | 27 layouts). */
+  function hGrid(cols, opts) {
+    opts = opts || {};
+    const live = (cols || []).filter(c => c && c.length);
+    if (!live.length) return "";
+    const W = opts.w || 420, rowH = opts.rowH || 40, gap = 4, pad = 6;
+    const rows = Math.max.apply(null, live.map(c => c.length));
+    const colW = (W - pad * 2 - gap * (cols.length - 1)) / cols.length;
+    const H = rows * rowH + (rows - 1) * gap + pad * 2;
+    const fs = Math.max(10, Math.min(opts.fs || 16, colW * 0.26));
+    const fsSub = Math.max(8, Math.round(fs * 0.64));
+
+    let s = '<svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="xMidYMin meet" role="img">';
+    cols.forEach((col, ci) => {
+      const x0 = pad + ci * (colW + gap);
+      col.forEach((c, ri) => {
+        const y0 = pad + ri * (rowH + gap);
+        s += '<rect x="' + (x0 + 1.5) + '" y="' + (y0 + 1.5) + '" width="' + (colW - 3) +
+             '" height="' + (rowH - 3) + '" rx="6" class="tc ' + (c.cls || "") + '"/>';
+        const hasSub = c.sub !== undefined && c.sub !== null && c.sub !== "";
+        const my = hasSub ? y0 + rowH / 2 - fs * 0.08 : y0 + rowH / 2 + fs * 0.35;
+        s += '<text class="tm" x="' + (x0 + colW / 2) + '" y="' + my + '" font-size="' + fs + '">' +
+             esc(c.main == null ? "" : c.main) + "</text>";
+        if (hasSub)
+          s += '<text class="ts" x="' + (x0 + colW / 2) + '" y="' + (my + fs * 0.95) +
+               '" font-size="' + fsSub + '">' + esc(c.sub) + "</text>";
+      });
+    });
+    return s + "</svg>";
+  }
+
+  /** Operator token for a step chain. */
+  const op = s => ({ op: s });
+  const isOp = p => p !== null && typeof p === "object" && p.op !== undefined;
+
+  /* ---- Triangle of Life: the folding pyramid ------------------------ */
+
+  const PYRAMID_CAP = 26;   // layers drawn before we stop
+  const CELL_BUDGET = 400; // keeps a long name from emitting thousands of nodes
+
+  /** How many layers to draw for an n-letter name: enough to read as a
+      triangle, few enough that the SVG stays cheap to rebuild on each keystroke. */
+  const layersToDraw = n => Math.max(4, Math.min(PYRAMID_CAP, Math.floor(CELL_BUDGET / Math.max(1, n))));
+
+  /**
+   * Fold a row of figures the way the Triangle of Life does: each cell is the
+   * reduced sum of its two neighbours, so the pyramid narrows by one cell per
+   * layer and converges on a single figure at the point.
+   */
+  function foldPyramid(vals) {
+    const rows = [vals.slice()];
+    while (rows[rows.length - 1].length > 1) {
+      const prev = rows[rows.length - 1], next = [];
+      for (let i = 0; i < prev.length - 1; i++) next.push(reduce(prev[i] + prev[i + 1]));
+      rows.push(next);
+    }
+    const grand = rows.reduce((a, row) => a + row.reduce((x, y) => x + y, 0), 0);
+    const sum = vals.reduce((a, b) => a + b, 0);
+    const last = rows[rows.length - 1][0];
+    const drawn = vals.length ? layersToDraw(vals.length) : 0;
+    return {
+      rows, depth: rows.length, grand, sum,
+      drawn: Math.min(drawn, rows.length),
+      cut: rows.length > drawn,
+      shown: rows.slice(0, Math.min(drawn, rows.length)),
+      // the point figure is whatever the folding actually arrives at, which is
+      // NOT reduce(sum): each cell folds only its own two neighbours
+      apex: vals.length ? last : 0,
+      finalFold: rows[rows.length - 2] || []
+    };
+  }
+
+  /** Horizontal runs of three or more identical figures anywhere in the pyramid. */
+  function findRuns(rows) {
+    const hits = [];
+    rows.forEach((row, r) => {
+      let i = 0;
+      while (i < row.length) {
+        let end = i;
+        while (end + 1 < row.length && row[end + 1] === row[i]) end++;
+        if (end - i + 1 >= 3) hits.push({ v: row[i], len: end - i + 1, row: r + 1 });
+        i = end + 1;
+      }
+    });
+    return hits;
+  }
+
+  /**
+   * How many such runs arithmetic alone should produce. Treats each cell as an
+   * independent uniform draw from 1..nv, which the real pyramid is not (adjacent
+   * cells share a parent) — so read it as an order of magnitude, not a proof.
+   */
+  function runControl(n, nv) {
+    if (n < 3) return "";
+    let slots = 0;
+    for (let L = 3; L <= n; L++) slots += (L - 2);
+    const p = 1 / (nv * nv);                 // three equal figures in a row
+    const expected = slots * p;
+    const chance = 1 - Math.pow(1 - p, slots);
+    return "Random control — an " + n + "-letter pyramid has " + slots +
+      " places where three figures could line up, and about " + expected.toFixed(1) +
+      " such runs are expected by chance alone; one turns up in roughly " +
+      Math.round(chance * 100) + "% of names. Repetitions are arithmetic, not evidence.";
+  }
+
+  /** Build a step chain: values get boxes, operators are plain separators. */
+  const steps = parts => {
+    const idx = parts.map((p, i) => (isOp(p) ? -1 : i)).filter(i => i >= 0);
+    const last = idx.length ? idx[idx.length - 1] : -1;
+    return '<div class="steps">' + parts.map((p, i) =>
+      isOp(p)
+        ? '<span class="arr">' + esc(p.op) + "</span>"
+        : '<span class="' + (i === last ? finalCls(+p) : "s") + '">' + esc(String(p)) + "</span>"
+    ).join("") + "</div>";
+  };
+
+  /**
+   * State for the numeral-only cards when the input holds no digits.
+   * Rather than a dead end, it says why the card is inert and shows what the
+   * same string would give under the Pythagorean table — labelled as a
+   * different system, because that is exactly what it would be.
+   */
+  function noDigitsHTML(D) {
+    if (!D.letters.length) {
+      return '<span class="empty">no digits and no letters yet — type a date, a number, or a name</span>';
+    }
+    const vals = D.letters.map(ch => pythValue(ch.charCodeAt(0)));
+    const sum = vals.reduce((a, b) => a + b, 0);
+    return '<div class="nada"><b>No digits in the input, so this card has nothing to reduce.</b> ' +
+             "Digital root is defined on numerals; a letter has to be turned into a number first, and " +
+             "numerology has at least five different tables for that. Under the Pythagorean 1–9 table " +
+             "this string would read:</div>" +
+           D.letters.map((ch, i) => '<span class="d">' + ch + "<sub>" + vals[i] + "</sub></span>")
+             .join('<span class="op">+</span>') +
+           '<span class="eq">=</span><span class="d">' + sum + '</span>' +
+           '<span class="eq">&rarr;</span><span class="d out">' + reduce(sum) + "</span>" +
+           '<span class="empty">— same number as the Pythagorean card</span>';
+  }
+
+  /* ==========================================================================
+     4. THE SYSTEMS
+     ========================================================================== */
+
+  const SYSTEMS = [
+
+  /* ---------- arithmetic ---------- */
+  {
+    id: "simple", tag: "arithmetic", trad: "arithmetic", num: "digits", title: "Simple digital root",
+    note: "Sum every digit, then keep summing the digits of the sum until one digit remains. Mathematically this is “number mod 9”, except multiples of 9 return 9 rather than 0, and it can never produce 11, 22 or 33. This is the one card that takes no letter table, which is why it stays silent on names — dates, phone numbers and house numbers are what it is for. For a name the answer depends entirely on which table you pick, and that choice is what the other cards exist to expose.",
+    back: () =>
+      '<p>The only genuinely mathematical card on this sheet. Everything else is a convention that people agreed on; ' +
+      'digital reduction is a well-defined operation that anyone can check.</p>' +
+      "<h4>Method</h4><p>Add the digits, then repeat on the result until a single digit is left. " +
+      "This is congruent to the number modulo 9 — which is why 1995, 2004 and 1996 all land on 7 " +
+      "despite being different numbers, and why the reduction never loses information about the residue.</p>" +
+      "<h4>Why 9 and not 0</h4><p>Strict modulo gives 0 for 18, 45 or 999. Numerology returns 9, on the older " +
+      "reading of nine as the number of completion rather than of nothing. If you want the strict residue, it " +
+      "is in the <code>mod 9</code> row.</p>" +
+      "<h4>Worked example</h4><p><code>19-11-1984</code> ignores the dashes: " +
+      "1+9+1+1+1+9+8+4 = 34, and 3+4 = 7. <code>1995</code> gives 1+9+9+5 = 24, and 2+4 = 6.</p>" +
+      "<h4>Why it cannot answer a name</h4><p>There is no letter table here, so there is nothing to sum. " +
+      "Every other card on this sheet is a different answer to the question this one declines to ask.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">digits read</span><b data-n="nd">0</b></div>' +
+        '<div><span class="k">raw sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">chain</span><b data-n="chain">&mdash;</b></div>' +
+        '<div><span class="k">mod 9</span><b data-n="mod">0</b></div>' +
+      '</div></div><div class="strip" data-n="strip"></div>',
+    update(n, D) {
+      const s = D.digits.reduce((a, b) => a + b, 0);
+      const r = reduce(s), has = D.digits.length > 0;
+      n.val.textContent = has ? r : "—";
+      n.val.className = "big " + bigCls(r);
+      n.nd.textContent = D.digits.length;
+      n.sum.textContent = s;
+      n.chain.textContent = has ? chain(s).join(" → ") : "—";
+      n.mod.textContent = s % 9;
+      let h = D.digits.map(d => '<span class="d">' + d + "</span>").join('<span class="op">+</span>');
+      h = has ? h + '<span class="eq">=</span><span class="d">' + s + '</span><span class="eq">&rarr;</span><span class="d out">' + r + "</span>"
+              : noDigitsHTML(D);
+      n.strip.innerHTML = h;
+      D.copy = "Simple digital root: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "reverse", tag: "arithmetic", trad: "arithmetic", num: "digits", title: "Reverse addition",
+    note: "The simple root with the digits read right to left. Addition is commutative, so the total is always identical and the result never changes — this card exists to prove that rather than leave it assumed, and to make mirrored or palindromic inputs easy to check. Same numerals-only rule as the card above.",
+    back: () =>
+      "<p>This card is here to settle a question, not to produce a new number. If it ever disagrees with the card " +
+      "above, something is wrong.</p>" +
+      "<h4>Why nothing changes</h4><p>Addition over the integers is commutative and associative. Reordering the " +
+      "digits of a sum cannot change its total, so the raw sum, the reduction chain and the final digit are all " +
+      "identical whether you read forwards or backwards.</p>" +
+      "<h4>Worked example</h4><p><code>1995</code> forward: 1+9+9+5 = 24. Backwards: 5+9+9+1 = 24. " +
+      "Both reduce to 6, and the <code>vs forward</code> row confirms it.</p>" +
+      "<h4>When it genuinely differs</h4><p>Only if the number itself is mirrored before you reduce it — writing " +
+      "1995 as 5991, or reading a date back to front as 48-91-11-91. At that point you are not doing reverse " +
+      "addition, you are feeding a different numeral to the same operation.</p>" +
+      "<h4>Practical use</h4><p>Useful as a checksum on the other digit systems, and for palindromic or " +
+      "repeated-digit inputs where you would expect the reading direction to matter and it does not.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">read as</span><b data-n="rev">&mdash;</b></div>' +
+        '<div><span class="k">raw sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">chain</span><b data-n="chain">&mdash;</b></div>' +
+        '<div><span class="k">vs forward</span><b data-n="cmp">&mdash;</b></div>' +
+      '</div></div><div class="strip" data-n="strip"></div>',
+    update(n, D) {
+      const rev = D.digits.slice().reverse();
+      const s = rev.reduce((a, b) => a + b, 0);
+      const fwd = D.digits.reduce((a, b) => a + b, 0);
+      const r = reduce(s), fr = reduce(fwd), has = rev.length > 0;
+      n.val.textContent = has ? r : "—";
+      n.val.className = "big " + bigCls(r);
+      n.rev.textContent = has ? rev.join("") : "—";
+      n.sum.textContent = s;
+      n.chain.textContent = has ? chain(s).join(" → ") : "—";
+      n.cmp.innerHTML = !has ? "—" : r === fr
+        ? "same as " + fr
+        : '<span class="mn">' + r + " ≠ " + fr + "</span>";
+      let h = rev.map(d => '<span class="d">' + d + "</span>").join('<span class="op">+</span>');
+      h = has ? h + '<span class="eq">=</span><span class="d">' + s + '</span><span class="eq">&rarr;</span><span class="d out">' + r + "</span>"
+              : noDigitsHTML(D);
+      n.strip.innerHTML = h;
+      D.copy = "Reverse addition: " + (has ? r : "—");
+    }
+  },
+
+  /* ---------- classic ---------- */
+  {
+    id: "pyth", tag: "pythagorean", trad: "pythagorean", num: "1-9", title: "Pythagorean",
+    note: "Letters repeat the 1-9 cycle from A. Vowels (A E I O U) and consonants are totalled separately, then added together; the master number that survives the final reduction is the result. Any digits in the input are ignored here — they belong to the date systems, not the name systems.",
+    back: () =>
+      "<p>A1Z26 with the tail cut off. The sequence runs 1 to 9 and then starts again at 1, so J is worth the " +
+      "same as A and R is worth 9. Chaldean is often described as the same idea; it is not — Chaldean stops the " +
+      "cycle at 17 and then uses only the values 1, 2 and 3.</p>" +
+      "<h4>Method</h4><p>Vowels and consonants are totalled separately and only then added together, because in " +
+      "classical practice they were read as different kinds of number rather than one sum. The combined total is " +
+      "then reduced — but the reduction stops at 11, 22 and 33.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> — vowels A+E+A = 1+5+1 = 7; consonants N+D+R = 5+4+9 = 18; " +
+      "total 25, and 2+5 = 7.</p>" +
+      "<h4>Master numbers</h4><p>A name totalling 29 reduces through 11 and stops there, rather than continuing " +
+      "to 2. This is why the Pythagorean card can output 11, 22 or 33 while plain digital root never can.</p>" +
+      "<h4>Relationship to the others</h4><p>Its letter values match the reduced Qabbalah values for A to Q only " +
+      "(A B C D E F G H I J K L M N O P Q); from R onward the two tables part company.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">vowels</span><b data-n="v">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">consonants</span><b data-n="c">0</b></div>' +
+        '<div><span class="k">total</span><b data-n="t">0</b></div>' +
+        '<div><span class="k">final</span><b data-n="r">0</b></div>' +
+      '</div></div><div data-n="steps"></div>' +
+      '<div class="sectitle">letter values — gold = vowel</div><div class="chips" data-n="chips"></div>',
+    update(n, D) {
+      let vs = 0, cs = 0, vc = 0, cc = 0;
+      const chips = D.letters.map(ch => {
+        const v = pythValue(ch.charCodeAt(0));
+        if (VOWELS.has(ch)) { vs += v; vc++; } else { cs += v; cc++; }
+        return '<span class="chip ' + (VOWELS.has(ch) ? "vow" : isMaster(v) ? "hot" : "") + '">' +
+               '<span class="t">' + ch + '</span><span class="s' + (VOWELS.has(ch) ? "" : " dim") + '">' + v + "</span></span>";
+      }).join("");
+      const total = vs + cs, r = masterReduce(total), has = D.letters.length > 0;
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.v.textContent = vs + "  (" + vc + ")";
+      n.c.textContent = cs + "  (" + cc + ")";
+      n.t.textContent = total;
+      n.r.textContent = has ? r : 0;
+      n.steps.innerHTML = has ? steps([vs, op("+"), cs, op("="), total, op("→"), r]) : "";
+      n.chips.innerHTML = chips || '<span class="empty">no letters</span>';
+      D.copy = "Pythagorean: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "chaldean", tag: "chaldean", trad: "chaldean", num: "1-9", title: "Chaldean Master Numbers",
+    note: "Chaldean uses fixed irregular values (A-I = 1, J-Q = 2, R-Z = 3) and counts digits as zero, so dates contribute nothing. Method: total the values, subtract the vowels in written order, subtract the consonants in written order, reduce — and stop at 11, 22 or 33.",
+    back: () =>
+      "<p>The oldest letter table in common Western numerology, and the one most often credited to the " +
+      "Chaldean astrologers — though no Chaldean text survives that actually uses it.</p>" +
+      "<h4>The values</h4><p>A to I are 1 to 9 in order. J to Q are all 2. R to Z are all 3. Digits contribute " +
+      "<em>nothing</em>: a birth date written into this card is simply ignored, which is why Chaldean is useless " +
+      "for date work and decisive for names.</p>" +
+      "<h4>Method, and a real ambiguity</h4><p>The published procedure is a subtraction sequence — total the " +
+      "letters, then subtract each vowel in written order, then each consonant — rather than a single formula, " +
+      "which is why published tables of Chaldean results disagree with one another. The version implemented here, " +
+      "and the most common in practice, collapses that sequence to the difference between the consonant count and " +
+      "the vowel count.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> totals 15. Subtracting the vowels (A, E, A = 3) leaves 12. " +
+      "There are three consonants and three vowels, so the difference is 0 — and Chaldean returns <span class=\"k\">0</span>.</p>" +
+      "<h4>Two Chaldean tables exist</h4><p>This is the modern one. An older <b>Chaldean 1–8</b> table, which " +
+      "assigns no letter a nine on the grounds that the figure is sacred, is used by the Triangle of Life card — " +
+      "the two are separate tables, not a disagreement about the same one.</p>" +
+      "<h4>The zero case</h4><p>Chaldean treats 0 as 0. It never applies the 0 → 9 rule, so a perfectly balanced " +
+      "name yields 0 rather than 9. That is the single biggest source of apparent disagreement between this card " +
+      "and the others.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letter total</span><b data-n="t">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">&minus; vowels</span><b data-n="v">0</b></div>' +
+        '<div><span class="k">= consonants</span><b data-n="c">0</b></div>' +
+        '<div><span class="k">count diff</span><b data-n="cnt">0</b></div>' +
+      '</div></div><div data-n="steps"></div>' +
+      '<div class="rule" data-n="rule"></div>' +
+      '<div class="sectitle">chaldean values — gold = vowel</div><div class="chips" data-n="chips"></div>',
+    update(n, D) {
+      const items = D.letters.map(ch => ({ ch, v: chaldeanValue(ch.charCodeAt(0)) }));
+      const total = items.reduce((a, b) => a + b.v, 0);
+      let vs = 0, vc = 0, cc = 0;
+      items.forEach(it => { if (VOWELS.has(it.ch)) { vs += it.v; vc++; } else cc++; });
+      const consTotal = total - vs;
+      const diff = cc - vc;
+      let x = diff, r;
+      if (!items.length) r = 0;
+      else if (diff === 0) r = 0;
+      else { if (x < 0) x = -x; r = x > 9 ? masterReduce(x) : x; }
+      const has = items.length > 0;
+
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.t.textContent = total;
+      n.v.textContent = vs + "  (" + vc + ")";
+      n.c.textContent = consTotal + "  (" + cc + ")";
+      n.cnt.textContent = diff + "  (" + cc + "c − " + vc + "v)";
+      n.steps.innerHTML = has
+        ? steps([total, op("−"), vs, op("="), consTotal, op("→"), diff, op("→"), r])
+        : "";
+      n.rule.innerHTML = !has
+        ? "Type letters to see the Chaldean reduction."
+        : diff === 0
+          ? 'Count difference is exactly <b>0</b>. Chaldean treats 0 as <b>0</b> — the name has no single-letter ruling. Under the digital-root rule it would read <b>' + reduce(0) + "</b>."
+          : 'Count difference <b>' + diff + "</b> → absolute value <b>" + x + "</b>" +
+            (x > 9 ? " → reduced <b>" + r + "</b>" : " → already a single digit, stop.");
+      n.chips.innerHTML = items.map(it =>
+        '<span class="chip ' + (VOWELS.has(it.ch) ? "vow" : isMaster(it.v) ? "hot" : "") + '">' +
+        '<span class="t">' + it.ch + '</span><span class="s' + (VOWELS.has(it.ch) ? "" : " dim") + '">' + it.v + "</span></span>"
+      ).join("") || '<span class="empty">no letters</span>';
+      D.copy = "Chaldean: " + (has ? r : "—");
+    }
+  },
+
+  /* ---------- qabbalah ---------- */
+  {
+    id: "qabbalah", tag: "qabbalah", trad: "qabbalah", num: "1-400", wide: true, title: "Qabbalah — gematria & 13-square",
+    note: "Each letter takes the gematria value of the Hebrew letter it maps to (A = 1 … N = 50 … T = 400), is reduced to a single digit, and is dealt row by row into the upside-down triangle — left to right, starting under the total cell. The same letters are also filed into the 13-square of the 13-letter circle, which restarts after M. The single digits here are not the Chaldean values: Chaldean keeps only the leading digit of the gematria and throws the rest away, so the two agree for just twelve letters and part company from J onwards. Flip for the full comparison.",
+    back: () =>
+      "<p>Gematria is the practice of reading a word as a number by using its letters' numerical values. It is " +
+      "genuinely ancient — the Talmud does it, and so does the Hebrew Bible for a few verses, though the system " +
+      "postdates the texts it is applied to.</p>" +
+      "<h4>The values used here</h4><p>A to Q take the first seventeen Hebrew letters in order: Aleph 1, Beth 2, " +
+      "Gimel 3 … Peh 80. From R the mapping stops being positional and starts borrowing by shape and sound: " +
+      "R = Resh 200, S = Shin 300, T = Tav 400, U = Ayin 70, V = Beth 2, W = Shin 300, X = Samekh 60, " +
+      "Y = Aleph 1, Z = Zayin 7. The glyph column in the table follows the same values.</p>" +
+      "<h4>Two reductions</h4><p>The headline number sums the full gematria and reduces at the end — so T " +
+      "contributes 400, not 4. The triangle instead reduces each letter first and places the single digit, because " +
+      "that is what the 13-row layout has room for. The <code>circle</code> column is a third convention: " +
+      "position within the 13-letter circle, which restarts after M, so N through Z land back in the early cells.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> = 1 + 50 + 4 + 200 + 5 + 1 = 261, and 2+6+1 = 9.</p>" +
+      "<h4>Not the same as Chaldean</h4><p>Chaldean keeps only the <em>leading</em> digit of each gematria value " +
+      "and discards the magnitude. The reduced gematria digit agrees with the Chaldean value for only twelve of " +
+      "the twenty-six letters — A B C D E F G H I, then K, S and W. They disagree everywhere else, which is where " +
+      "the two cards diverge most sharply.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">gematria sum</span><b data-n="raw">0</b></div>' +
+        '<div><span class="k">circle sum</span><b data-n="circle">0</b></div>' +
+        '<div><span class="k">circle root</span><b data-n="circler">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+      '</div></div>' +
+      '<div class="split k2"><div>' +
+        '<div class="sectitle">upside-down triangle — total cell + 13 rows</div>' +
+        '<div class="diagram" data-n="tri"></div>' +
+        '<div class="legend">' +
+          '<span><i class="lg-norm"></i>reduced value</span>' +
+          '<span><i class="lg-mas"></i>master</span>' +
+          '<span><i class="lg-z"></i>empty</span>' +
+          '<span>small letter under each value</span>' +
+        '</div></div><div>' +
+        '<div class="sectitle">13-letter circle / magic square</div><div class="sq" data-n="sq"></div>' +
+        '<div class="rule" data-n="over" style="display:none"></div>' +
+        '<div class="sectitle">gematria reduction, letter by letter</div>' +
+        '<div class="scroll"><table><thead><tr><th class="c">pos</th><th class="c">letter</th>' +
+        '<th class="c">hebrew</th><th class="n">gematria</th><th class="n">reduce</th>' +
+        '<th class="n">circle</th></tr></thead><tbody data-n="tbody"></tbody></table></div>' +
+      '</div></div>',
+    update(n, D) {
+      const items = D.letters.map((ch, i) => {
+        const code = ch.charCodeAt(0);
+        const g = gematria(code);
+        return { ch, i: i + 1, g, heb: hebrewGlyph(code), red: reduce(g), sq: circleCell(code) + 1 };
+      });
+      const raw = items.reduce((a, b) => a + b.g, 0);
+      const circleSum = items.reduce((a, b) => a + b.sq, 0);
+      const r = items.length ? masterReduce(raw) : 0;
+      const cr = items.length ? masterReduce(circleSum) : 0;
+
+      n.val.textContent = items.length ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.nl.textContent = items.length;
+      n.raw.textContent = raw;
+      n.circle.textContent = circleSum;
+      n.circler.textContent = items.length ? cr : 0;
+
+      // row 0 = total, rows 1..13 = 1..13 cells  (13 × 14 ÷ 2 = 91 cell capacity)
+      const CAP = 91;
+      const shown = items.slice(0, CAP);
+      const rows = [[{ main: items.length ? r : "—", cls: isMaster(r) ? "mas" : "si", sub: "total" }]];
+      let k = 0;
+      for (let i = 1; i <= 13; i++) {
+        const row = [];
+        for (let j = 0; j < i; j++) {
+          const it = shown[k++];
+          row.push(it
+            ? { main: it.red, sub: it.ch, cls: isMaster(it.red) ? "mas" : "" }
+            : { main: "", cls: "z" });
+        }
+        rows.push(row);
+      }
+      n.tri.innerHTML = vTri(rows, { w: 840, rowH: 44 });
+
+      n.over.style.display = items.length > CAP ? "" : "none";
+      n.over.innerHTML = items.length > CAP
+        ? "The 13-row pyramid holds <b>" + CAP + " cells</b>. This name has <b>" + items.length +
+          "</b> letters, so the last <b>" + (items.length - CAP) + "</b> have no cell — the totals above still count them."
+        : "";
+
+      const used = new Array(13).fill(0);
+      items.forEach(it => used[it.sq - 1]++);
+      n.sq.innerHTML = CIRCLE_13.map((ch, i) => {
+        const c = used[i];
+        return '<span class="q ' + (c ? "hot" : "") + '">' + ch +
+               '<br><span class="pos">' + (i + 1) + "</span>" +
+               (c ? "<br><b>" + c + "</b>" : "") + "</span>";
+      }).join("");
+
+      n.tbody.innerHTML = items.map(it =>
+        '<tr><td class="c n">' + it.i + '</td><td class="c"><b>' + it.ch + "</b></td>" +
+        '<td class="c heb">' + it.heb + '</td><td class="n">' + it.g + "</td>" +
+        '<td class="n" style="font-weight:700' + (isMaster(it.red) ? ";color:var(--nq-gold)" : "") + '">' + it.red + "</td>" +
+        '<td class="n dim">' + it.sq + "</td></tr>"
+      ).join("") || '<tr><td colspan="6" class="dim">no letters</td></tr>';
+
+      D.copy = "Qabbalah: gematria " + (items.length ? r : "—") + " / circle " + (items.length ? cr : "—");
+    }
+  },
+
+  {
+    id: "anglossic", tag: "qabbalah", trad: "qabbalah", num: "1-400", title: "Qabbalah — alphanumerical",
+    note: "The alphanumerical cipher: the 26 Latin letters are read as the 22 Hebrew letters of the Master Alphabet, the surplus four taking final-letter values. A–V are the Mathers table published in Kabbalah Unveiled (1887); W, X, Y, Z take Vau, Samekh, Nun sof. and Tzaddi sof. — the one part of the table charts disagree about. Alongside the absolute value (mispar hechrachi) sits mispar katan, the “small value” that simply drops the zeroes: 20 → 2, 400 → 4.",
+    back: () =>
+      "<p>Also written <em>Anglicised</em> or <em>Anglossic</em> Qabbalah. Where the Qabbalah card borrows the " +
+      "nearest Hebrew letter by shape, this one reads the Latin alphabet straight into the Hebrew alphabet in " +
+      "order, and admits that four letters will not fit.</p>" +
+      "<h4>The table</h4><p>A to V follow the transliterated cipher published by Mathers in <em>Kabbalah " +
+      "Unveiled</em> (1887), which the Golden Dawn, Crowley and the O.T.O. all used: A = 1 … J = 10, " +
+      "K to S = 20 … 100, T to V = 200, 300, 400. The four surplus Latin letters take the final-letter " +
+      "(sofit) values — W = Vau 6, X = Samekh 60, Y = Nun sof. 700, Z = Tzaddi sof. 900. This last group is " +
+      "where published charts most often disagree.</p>" +
+      "<h4>Mispar katan</h4><p>The <em>small value</em> simply deletes the zeroes: 20 becomes 2, 300 becomes 3, " +
+      "700 becomes 7. It is a second, independent answer from the same letters, and it often lands somewhere " +
+      "different from the absolute value.</p>" +
+      "<h4>Worked example</h4><p><code>HELLO</code> — Heth 8, Heh 5, Lamed 30, Lamed 30, Samekh 60. " +
+      "Absolute: 133, which reduces to 7. Katan: 8+5+3+3+6 = 25, which also reduces to 7.</p>" +
+      "<h4>Relationship to the others</h4><p>Not the same as the alphabetical card. That one adds nine to each " +
+      "letter's alphabet position (A = 10 … Z = 35) and totals 666 for <code>Of man's first disobedience " +
+      "and the fruit</code>; this one reads the Latin letters into the 22 Hebrew letters and totals 1791 " +
+      "for the same phrase. Sources swap the names “alphanumerical” and “alphabetical” between the two, so " +
+      "the rule is the safer thing to go on.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">hechrachi</span><b data-n="abs">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">katan</span><b data-n="kat">0</b></div>' +
+        '<div><span class="k">katan root</span><b data-n="katr">0</b></div>' +
+      '</div></div>' +
+      '<div data-n="steps"></div>' +
+      '<div class="sectitle">the 26 letters — letter · hebrew · absolute &rarr; reduced</div>' +
+      '<div class="anq" data-n="grid"></div>' +
+      '<div class="legend"><span><i class="lg-hot"></i>letters present in this input</span></div>' +
+      '<div class="sectitle">alphabetical order — A = 10 &hellip; Z = 35</div>' +
+      '<div class="chips" data-n="chips"></div>' +
+      '<div class="rule" data-n="vs"></div>',
+    update(n, D) {
+      const items = D.letters.map(ch => {
+        const i = ch.charCodeAt(0) - 65;
+        return { ch, i, abs: ANQ[i], heb: ANQ_HEB[i], name: ANQ_NAME[i], kat: katan(ANQ[i]) };
+      });
+      const abs = items.reduce((a, b) => a + b.abs, 0);
+      const kat = items.reduce((a, b) => a + b.kat, 0);
+      const r = items.length ? masterReduce(abs) : 0;
+      const kr = items.length ? masterReduce(kat) : 0;
+
+      n.val.textContent = items.length ? r : "—";
+      n.val.className = "big " + bigCls(r);
+      n.nl.textContent = items.length;
+      n.abs.textContent = abs;
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.kat.textContent = kat;
+      n.katr.textContent = items.length ? kr : 0;
+      n.steps.innerHTML = items.length
+        ? steps([abs, op("→"), r, op("│"), kat, op("→"), kr])
+        : "";
+
+      const used = new Set(items.map(x => x.i));
+      n.grid.innerHTML = ANQ.map((v, i) => {
+        const ch = String.fromCharCode(65 + i);
+        const on = used.has(i);
+        const rv = reduce(v);
+        return '<div class="ac' + (on ? " on" : "") + (isMaster(rv) ? " mas" : "") +
+               '" title="' + esc(ANQ_NAME[i] + " · " + v + " · katan " + katan(v)) + '">' +
+               '<span class="l">' + ch + '</span><span class="h">' + ANQ_HEB[i] + "</span>" +
+               '<span class="v">' + v + " &rarr; " + rv + "</span></div>";
+      }).join("");
+
+      const abItems = D.letters.map(ch => ({ ch, v: hebrewOrder(ch.charCodeAt(0)) }));
+      const abSum = abItems.reduce((a, b) => a + b.v, 0);
+      const abFold = abItems.reduce((a, b) => a + reduce(b.v), 0);
+      n.chips.innerHTML = abItems.map(it =>
+        '<span class="chip"><span class="t">' + it.ch + "</span>" +
+        '<span class="s">' + it.v + " &rarr; " + reduce(it.v) + "</span></span>"
+      ).join("") || '<span class="empty">no letters</span>';
+      n.vs.innerHTML = !items.length ? "" :
+        "Adding nine to each letter's position leaves every digit root untouched, so this order folded " +
+        "gives the Pythagorean 1–9 cycle exactly — folded " + abFold + ", reduced " + masterReduce(abSum) +
+        ". Only the total beforehand differs. Plain A1Z26 would give <b>" +
+        (abSum - 9 * D.letters.length) + "</b>. That same figure is reported as the <code>hebrew order</code> " +
+        "property on every card that values letters.";
+
+      D.copy = "Qabbalah alphanumerical: " + (items.length ? r : "—") +
+               " (hechrachi " + abs + ", hebrew order " + n.hb.textContent + ")";
+    }
+  },
+
+  /* ---------- triangle ---------- */
+  {
+    id: "tolife", tag: "triangle", trad: "pythagorean", num: "1-8", wide: true, title: "Triangle of Life — folding pyramid",
+    note: "A different construction from the Qabbalah pyramid above. Here the letters sit on the top row and every cell below is the reduced sum of the two cells above it, so the triangle narrows by one each layer and converges on a single figure at the point. The top row only ever holds letters — nothing is dealt into rows 2 onwards.",
+    html: () =>
+      '<div class="nq-row nq-modes">' +
+        '<button class="nq-tag" type="button" data-mode="ch" aria-pressed="true">chaldean 1&ndash;8</button>' +
+        '<button class="nq-tag" type="button" data-mode="gm" aria-pressed="false">gematria</button>' +
+      "</div>" +
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">top row sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">&rarr; root</span><b data-n="hbr">0</b></div>' +
+        '<div><span class="k">layers</span><b data-n="layers">0</b></div>' +
+        '<div><span class="k">all figures</span><b data-n="grand">0</b></div>' +
+      "</div></div>" +
+      '<div data-n="steps"></div>' +
+      '<div class="diagram" data-n="tri"></div>' +
+      '<div class="legend"><span><i class="lg-norm"></i>figure</span>' +
+        '<span><i class="lg-hot"></i>run of three or more</span>' +
+        '<span><i class="lg-z"></i>empty</span></div>' +
+      '<div class="nq-reps" data-n="reps"></div>' +
+      '<div class="nq-ctl" data-n="ctl"></div>',
+    mount(el, n) {
+      const btns = el.querySelectorAll("[data-mode]");
+      btns.forEach(b => b.addEventListener("click", () => {
+        el.dataset.mode = b.dataset.mode;
+        btns.forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+        paint();
+      }));
+    },
+    update(n, D) {
+      const mode = this.el.dataset.mode || "ch";
+      const nv = mode === "ch" ? 8 : 9;
+      const items = D.letters.map(ch => {
+        const v = mode === "ch" ? chaldean8(ch) : gemTrue(ch, ch.charCodeAt(0));
+        return { ch, raw: v, val: reduce(v) };
+      });
+      const has = items.length > 0;
+      const pyr = foldPyramid(items.map(x => x.val));
+      /* the other table on the same letters, shown beside the fold */
+      const hbSum = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+
+      n.val.textContent = has ? pyr.apex : "—";
+      n.val.className = "big " + bigCls(pyr.apex);
+      n.nl.textContent = items.length;
+      n.sum.textContent = pyr.sum;
+      n.hb.textContent = hbSum;
+      n.hbr.textContent = hbSum ? reduce(hbSum) : 0;
+      n.layers.textContent = pyr.depth;
+      n.grand.textContent = pyr.grand;
+
+      const ff = pyr.finalFold;
+      n.steps.innerHTML = !has ? ""
+        : (ff.length === 2
+            ? steps([ff[0], op("+"), ff[1], op("→"), pyr.apex])
+            : steps([pyr.apex]));
+
+      const runs = findRuns(pyr.rows);
+      const rows = pyr.shown.map((row, r) =>
+        row.map(v => {
+          const hit = runs.find(h => h.row === r + 1 && h.v === v);
+          return { main: v, cls: hit ? "hot" : "" };
+        })
+      );
+      // top row shows the letter above its figure
+      if (rows.length && items.length) {
+        rows[0] = rows[0].map((c, i) =>
+          Object.assign({}, c, { sub: items[i] ? items[i].ch : "" }));
+      }
+      n.tri.innerHTML = vTri(rows, { w: 900, rowH: 34, shape: "rect", fs: 15 });
+
+      n.reps.innerHTML = has
+        ? (runs.length
+            ? "repetitions " + runs.map(h =>
+                '<span class="rb">' + String(h.v).repeat(3) + "</span>" +
+                '<span class="rp">row ' + h.row + (h.len > 3 ? " &times;" + h.len : "") + "</span>"
+              ).join("") +
+              (pyr.cut ? '<div class="rp" style="width:100%">top ' + pyr.drawn +
+                          " of " + pyr.depth + " layers drawn</div>" : "")
+            : '<span class="rp">no run of three in the pyramid</span>')
+        : "";
+      n.ctl.textContent = has && items.length >= 3 ? runControl(items.length, nv) : "";
+      D.copy = "Triangle of Life (" + (mode === "ch" ? "Chaldean 1-8" : "gematria") + "): " +
+               (has ? pyr.apex : "—");
+    },
+    back: () =>
+      "<p>The Triangle of Life is the one construction on this sheet that <em>generates</em> its rows rather " +
+      "than filling them. The letters sit on the top edge; every cell beneath is the reduced sum of the two cells " +
+      "above it; the triangle loses one cell per layer and ends in a single figure at the point.</p>" +
+      "<h4>Two tables, not one</h4><p>The mode switch changes the letter values, not the construction. " +
+      "<b>Chaldean 1–8</b> is the older table: A I Q J Y = 1, B K R = 2, C G L S = 3, D M T = 4, E H N = 5, " +
+      "U V W X = 6, O Z = 7, F P = 8. No letter is given a nine, which is the point of this table — it is " +
+      "asserted that nine is sacred and so cannot be assigned. This is a <em>different table</em> from the " +
+      "modern Chaldean card, which runs 1–9 then 2 then 3.</p>" +
+      "<h4>Gematria here</h4><p>A to V take the 22 Hebrew letters in order — Aleph 1 … Qoph 100, Resh 200, " +
+      "Shin 300, Tav 400. W, X, Y and Z have no Hebrew letter and fall back to their Chaldean 1–8 figure. " +
+      "Folded, this reproduces the Pythagorean values exactly for A to V (and for X), diverging only at W, Y " +
+      "and Z. Note the Anglossic Qabbalah card uses final-letter values for those four instead.</p>" +
+      "<h4>The hebrew-order row</h4><p>The <code>hebrew order</code> row above the triangle is not part of " +
+      "this construction at all — it is the A = 10 … Z = 35 total for the same letters, shown beside the " +
+      "fold so the two readings of one name sit next to each other. It is the figure that makes " +
+      "<code>Of man's first disobedience and the fruit</code> come to 666.</p>" +
+      "<h4>The point is not the sum</h4><p>The headline figure is whatever the folding actually arrives at, " +
+      "and it is generally <em>not</em> the reduction of the top row's sum. A row of 1, 2, 3 sums to 6 and " +
+      "reduces to 6, but the triangle folds 1+2 = 3 and 2+3 = 5, then 3+5 = 8. Eight, not six. Each cell " +
+      "sees only its two neighbours, so the middle of a long row never reaches the point intact — the " +
+      "construction is a weighted blend, not a sum. <code>ANDREA</code> gives a top row sum of 18 (→ 9) " +
+      "and a point figure of 4.</p>" +
+      "<h4>The repetitions, and why they mean little</h4><p>Rows of three identical figures get highlighted, " +
+      "because finding 777 or 222 in a triangle <em>feels</em> like a discovery. The control line underneath " +
+      "prices it: in an n-letter pyramid there are that many places where three figures could line up, and " +
+      "chance alone produces a couple of them in most names. A repeated figure is arithmetic.</p>" +
+      "<h4>Caps and omissions</h4><p>The drawing stops at " + PYRAMID_CAP + " layers, and sooner for long names — " +
+      "a row of forty letters would otherwise emit thousands of shapes — so you will see a note saying how " +
+      "many layers of how many are actually on screen. The totals above are computed over every layer, drawn or " +
+      "not. The source material this was adapted from also treats diacritics as arithmetic modifiers — an acute " +
+      "adds 2, a circumflex multiplies by 2 — but this cheatsheet strips accents before counting, so that layer " +
+      "is not reproduced here.</p>",
+  },
+
+  {
+    id: "pythchart", tag: "triangle", trad: "pythagorean", num: "1-9", title: "Pythagorean chart — 45 cells",
+    note: "The full Pythagorean chart: nine rows of 9, 8, 7 … 1 cells, forty-five in all. Each figure owns a diagonal — 1 gets a single cell at the point, 9 gets nine along the top edge — so a name whose letters are mostly low numbers crowds into the narrow end of the triangle.",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">pythagorean sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">figures present</span><b data-n="figs">0</b></div>' +
+        '<div><span class="k">crowded</span><b data-n="crowd">—</b></div>' +
+      "</div></div>" +
+      '<div data-n="steps"></div>' +
+      '<div class="diagram" data-n="chart"></div>' +
+      '<div class="legend"><span><i class="lg-hot"></i>figure used by the input</span>' +
+        '<span><i class="lg-z"></i>figure not used</span>' +
+        '<span>letters sit on their own diagonal; <b>+n</b> counts the overflow</span></div>',
+    update(n, D) {
+      const items = D.letters.map(ch => ({ ch, v: pythValue(ch.charCodeAt(0)) }));
+      const buckets = {};
+      for (let i = 1; i <= 9; i++) buckets[i] = [];
+      items.forEach(it => buckets[it.v].push(it));
+
+      const sum = items.reduce((a, b) => a + b.v, 0);
+      const has = items.length > 0;
+      const r = has ? masterReduce(sum) : 0;
+      const present = Object.keys(buckets).filter(k => buckets[k].length).map(Number);
+
+      // figures owning more letters than cells — they overflow onto one cell
+      const crowded = present.filter(v => buckets[v].length > v);
+
+      const hbSum = items.reduce((a, it) => a + hebrewOrder(it.ch.charCodeAt(0)), 0);
+
+      n.val.textContent = has ? r : "—";
+      n.val.className = "big " + bigCls(r);
+      n.nl.textContent = items.length;
+      n.sum.textContent = sum;
+      n.hb.textContent = hbSum;
+      n.figs.textContent = present.length + " / 9";
+      n.crowd.textContent = crowded.length
+        ? crowded.map(v => v + " (+" + (buckets[v].length - v) + ")").join(", ")
+        : "none";
+
+      n.steps.innerHTML = has ? steps([sum, op("→"), r]) : "";
+
+      const rows = [];
+      for (let rr = 1; rr <= 9; rr++) {
+        const row = [];
+        for (let p = 1; p <= 10 - rr; p++) {
+          const v = rr + p - 1;
+          const b = buckets[v];
+          const label = b.slice(0, 3).map(x => x.ch).join("") +
+                        (b.length > 3 ? "+" + (b.length - 3) : "");
+          row.push({ main: v, sub: label, cls: b.length ? "hot" : "z" });
+        }
+        rows.push(row);
+      }
+      n.chart.innerHTML = vTri(rows, { w: 880, rowH: 46, shape: "rect", fs: 15 });
+      D.copy = "Pythagorean 45-cell chart: " + (has ? r : "—");
+    },
+    back: () =>
+      "<p>The complete Pythagorean chart, rather than the three-by-three fragment usually reproduced. It has " +
+      "nine rows of nine, eight, seven … one cells — forty-five cells in all, which is why the name is " +
+      "attached to that figure.</p>" +
+      "<h4>How the cells are assigned</h4><p>The cell on row r, position p, carries figure r + p − 1. Because " +
+      "each figure therefore sits on one unbroken diagonal, figure 1 owns a single cell at the point and figure 9 " +
+      "owns nine along the top edge.</p>" +
+      "<h4>Why a long name looks wrong</h4><p>Because the chart has no spare capacity at the low end. A name full " +
+      "of ones and twos crowds dozens of letters into one or two cells, while a single nine has nine cells to " +
+      "itself. The <code>crowded</code> row names the figures that overflow and by how much.</p>" +
+      "<h4>Values</h4><p>Plain Pythagorean — the repeating 1 to 9 cycle from A — so the number here is identical " +
+      "to the Pythagorean card. Only the layout is new. Folding the gematria values produces the same picture for " +
+      "A to V, which is the observation the Triangle of Life card relies on.</p>" +
+      "<h4>Provenance</h4><p>Pythagoras is credited with the triangle of numbers, but the numerological " +
+      "three-by-three grid is not attested in any Pythagorean text. It is a modern attribution, and should be read " +
+      "as one.</p>"
+  },
+
+  /* ---------- pyramids ---------- */
+  {
+    id: "chpyr", tag: "pyramid", trad: "chaldean", num: "1-9", wide: true, title: "Chaldean pyramid 3-3-3-3-3-3",
+    note: "The classic Chaldean pyramid: letters are laid down in rows of three, each row stepped half a cell to the right, with the letter count closing the base. The value sits above the letter. Values are identical to the Chaldean card, so the sum below is the check on the reading.",
+    back: () =>
+      "<p>A layout rather than a calculation. The numbers come from the Chaldean card; the pyramid is how they " +
+      "were traditionally written out by hand, three letters to a row, stepping right so the whole shape reads as " +
+      "a stepped pyramid.</p>" +
+      "<h4>How the reading works</h4><p>Start at the top-left cell and work across, then down, exactly as you " +
+      "would read text. The count of letters closes the base row, and the last cell of each row that is only " +
+      "partly filled stays empty.</p>" +
+      "<h4>Capacity</h4><p>Six rows of three hold eighteen letters. Beyond that the pyramid simply runs out — " +
+      "there is no agreed continuation, which is why long names need a different display.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> fills rows A / N D / R E A and leaves the rest empty, " +
+      "with the base showing 6 letters. The values sum to 15, which reduces to 6.</p>" +
+      "<h4>What it is good for</h4><p>Nothing numerical. Its value is spatial: it shows at a glance where a name " +
+      "runs out of letters, which is how practitioners reasoned about the shape before any table was formalised.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">rows needed</span><b data-n="nr">0</b></div>' +
+        '<div><span class="k">value sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">reduced</span><b data-n="r">0</b></div>' +
+      '</div></div>' +
+      '<div class="split k2"><div class="diagram" data-n="tri"></div><div>' +
+        '<div class="sectitle">reading order</div>' +
+        '<div class="scroll"><table><thead><tr><th class="c">#</th><th class="c">letter</th>' +
+        '<th class="n">value</th><th class="n">row</th><th class="n">pos</th></tr></thead>' +
+        '<tbody data-n="tbody"></tbody></table></div>' +
+      '</div></div>',
+    update(n, D) {
+      const items = D.letters.map(ch => ({ ch, v: chaldeanValue(ch.charCodeAt(0)) }));
+      const sum = items.reduce((a, b) => a + b.v, 0);
+      const r = masterReduce(sum), has = items.length > 0;
+
+      n.val.textContent = has ? r : "—";
+      n.val.className = "big " + bigCls(r);
+      n.nl.textContent = items.length;
+      n.nr.textContent = Math.ceil(items.length / 3);
+      n.sum.textContent = sum;
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.r.textContent = has ? r : 0;
+
+      const rows = [];
+      let k = 0;
+      for (let i = 0; i < 6; i++) {
+        const row = [];
+        for (let j = 0; j < 3; j++) {
+          const it = items[k++];
+          row.push(it ? { main: it.v, sub: it.ch, cls: isMaster(it.v) ? "mas" : "" } : { main: "", cls: "z" });
+        }
+        rows.push(row);
+      }
+      rows.push([{ main: "", cls: "z" },
+                 { main: items.length, cls: "si", sub: "letters" },
+                 { main: "", cls: "z" }]);
+      n.tri.innerHTML = vTri(rows, { w: 320, rowH: 46, indent: 0.5, shape: "rect", fs: 19 });
+
+      n.tbody.innerHTML = items.map((it, i) =>
+        '<tr><td class="c n">' + (i + 1) + '</td><td class="c"><b>' + it.ch + "</b></td>" +
+        '<td class="n">' + it.v + '</td><td class="n dim">' + (Math.floor(i / 3) + 1) + "</td>" +
+        '<td class="n dim">' + ((i % 3) + 1) + "</td></tr>"
+      ).join("") || '<tr><td colspan="5" class="dim">no letters</td></tr>';
+
+      D.copy = "Chaldean pyramid: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "chrev", tag: "pyramid", trad: "chaldean", num: "1-9", title: "Chaldean pyramid — reversed",
+    note: "The same pyramid filled from the last letter back to the first, so the name is read upwards from the apex. The value sum is unchanged and so is the result — use this layout to read a name backwards, not to get a different number.",
+    back: () =>
+      "<p>A mirror of the previous card, and included as a demonstration rather than a system.</p>" +
+      "<h4>What it does</h4><p>Fills the identical stepped pyramid, but starts from the final letter and works " +
+      "backwards, so the last letter of the name sits at the apex and the first sits nearest the base. The name " +
+      "then reads upward.</p>" +
+      "<h4>What it does not do</h4><p>Nothing numerical changes. Addition is commutative, so the value sum and " +
+      "the reduction are identical to the forward pyramid for every input. If a table ever lists a different " +
+      "Chaldean number for a name read backwards, that table is wrong.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> reversed is A E R D N A, so the apex holds A and the base " +
+      "row ends with the same A. Compare the <code>from apex</code> and <code>to base</code> rows to confirm " +
+      "the direction has flipped.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">from apex</span><b data-n="from">&mdash;</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">to base</span><b data-n="to">&mdash;</b></div>' +
+        '<div><span class="k">value sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">reduced</span><b data-n="r">0</b></div>' +
+      '</div></div><div class="diagram" data-n="tri"></div>',
+    update(n, D) {
+      const items = D.letters.map(ch => ({ ch, v: chaldeanValue(ch.charCodeAt(0)) })).reverse();
+      const sum = items.reduce((a, b) => a + b.v, 0);
+      const r = masterReduce(sum), has = items.length > 0;
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.from.textContent = has ? items[0].ch : "—";
+      n.to.textContent = has ? items[items.length - 1].ch : "—";
+      n.sum.textContent = sum;
+      n.r.textContent = has ? r : 0;
+      const rows = [];
+      let k = 0;
+      for (let i = 0; i < 6; i++) {
+        const row = [];
+        for (let j = 0; j < 3; j++) {
+          const it = items[k++];
+          row.push(it ? { main: it.v, sub: it.ch, cls: isMaster(it.v) ? "mas" : "" } : { main: "", cls: "z" });
+        }
+        rows.push(row);
+      }
+      n.tri.innerHTML = vTri(rows, { w: 300, rowH: 46, indent: 0.5, shape: "rect", fs: 19 });
+      D.copy = "Reversed Chaldean pyramid: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "affirm", tag: "pyramid", trad: "modern", num: "1-9", title: "Affirmation triangle (3-3-3)",
+    note: "Nine letters fill a 3×3 grid left to right, top to bottom; a tenth letter, if the name is long enough, takes the centre. The triangle's number is the letter count, reduced — and kept when it lands on 11, 22 or 33.",
+    back: () =>
+      "<p>Sometimes called the 3-3-3 grid or the numerology triangle. The letter <em>count</em> is the number " +
+      "being reduced here — not the letters' values — so this card deliberately disagrees with most others.</p>" +
+      "<h4>The layout</h4><p>Nine cells read left to right, top to bottom: A B C / D E F / G H I. A tenth letter, " +
+      "if the name has one, takes the centre. Most names stop at the ninth cell, which is why the centre is " +
+      "usually empty.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> places A N D / R E A / and nothing else. Six letters, " +
+      "which reduces to 6 — even though the Pythagorean reading of the same name is 7.</p>" +
+      "<h4>Master numbers</h4><p>The count is reduced with masters preserved, so a name of eleven letters gives " +
+      "11 rather than 2, twenty-two gives 22, thirty-three gives 33.</p>" +
+      "<h4>Honest caveat</h4><p>There is no historical text prescribing this grid, and the 'affirmation' framing " +
+      "is modern. It is a popular display convention rather than a documented system — useful for seeing the " +
+      "shape of a short name, not as evidence of anything.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">grid filled</span><b data-n="g">0</b></div>' +
+        '<div><span class="k">pythagorean</span><b data-n="py">0</b></div>' +
+        '<div><span class="k">count root</span><b data-n="r">0</b></div>' +
+      '</div></div><div class="g9" data-n="g9"></div>' +
+      '<div class="sectitle">read-out</div><div data-n="txt" class="mono dimtxt"></div>',
+    update(n, D) {
+      const L = D.letters, has = L.length > 0;
+      const pySum = L.reduce((a, ch) => a + pythValue(ch.charCodeAt(0)), 0);
+      const py = has ? masterReduce(pySum) : 0;
+      const r = has ? masterReduce(L.length) : 0;
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.nl.textContent = L.length;
+      n.g.textContent = Math.min(10, L.length) + " / 10";
+      n.py.textContent = py;
+      n.r.textContent = has ? r : 0;
+
+      let h = "";
+      for (let i = 0; i < 9; i++) {
+        const ch = L[i];
+        if (!ch) { h += '<div class="gcell empty"><span class="l">&middot;</span></div>'; continue; }
+        if (i === 4) {
+          const tenth = L[9];
+          h += '<div class="gcell hot"><span class="l">' + ch + "</span>" +
+               (tenth ? '<span class="l sm">' + tenth + '</span><span class="s">10th letter</span>'
+                      : '<span class="n">' + r + '</span><span class="s">centre</span>') + "</div>";
+          continue;
+        }
+        h += '<div class="gcell"><span class="l">' + ch + '</span><span class="n sm">' +
+             pythValue(ch.charCodeAt(0)) + "</span></div>";
+      }
+      n.g9.innerHTML = h;
+      n.txt.textContent = has
+        ? D.words.join(" ") + "  →  " + L.map(c => String.fromCharCode(c.charCodeAt(0) + 32)).join(" ") +
+          "  →  " + L.length + " letters  →  " + r
+        : "";
+      D.copy = "Affirmation triangle: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "pyth3", tag: "pyramid", trad: "pythagorean", num: "1-9", title: "Pythagorean 3-column grid",
+    note: "Letters are dealt into three columns top to bottom; each column is totalled and reduced on its own. Reading the three column roots left to right is the “3-3-3” summary of a name; the grand total is the Pythagorean result.",
+    back: () =>
+      "<p>The name <em>3-3-3</em> comes from nine cells, not three: nine letters in a three-by-three arrangement. " +
+      "This card shows the three-column variant, which is the form most practitioners draw.</p>" +
+      "<h4>How the deal works</h4><p>Letters are taken in written order and placed down the first column, then " +
+      "the second, then the third — so for <code>ANDREA</code> the columns are A R, N E and D A. Each column is " +
+      "totalled and reduced separately, giving three roots that are read across as a summary number.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> — column sums 1+9 = 10, 5+5 = 10, and 4+1 = 5. Roots: " +
+      "1, 1, 5. The grand total of 25 reduces to 7, matching the Pythagorean card exactly, because the columns " +
+      "only partition the same letters.</p>" +
+      "<h4>What the columns add</h4><p>Nothing new numerically — the grand total is always the Pythagorean " +
+      "result. What the columns add is a sense of <em>distribution</em>: it shows which stretch of the name " +
+      "carries the weight, which is why uneven names look uneven here even when they share a final number.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">col sums</span><b data-n="sums">&mdash;</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">col roots</span><b data-n="cols">&mdash;</b></div>' +
+        '<div><span class="k">grand total</span><b data-n="t">0</b></div>' +
+        '<div><span class="k">reduced</span><b data-n="r">0</b></div>' +
+      '</div></div><div class="diagram" data-n="g"></div>' +
+      '<div class="legend"><span>letter above, Pythagorean value below</span><span>outlined row = column total</span></div>',
+    update(n, D) {
+      const cols = [[], [], []];
+      D.letters.forEach((ch, i) => cols[i % 3].push({ ch, v: pythValue(ch.charCodeAt(0)) }));
+      const sums = cols.map(c => c.reduce((a, b) => a + b.v, 0));
+      const roots = sums.map(s => masterReduce(s));
+      const total = sums.reduce((a, b) => a + b, 0);
+      const r = D.letters.length ? masterReduce(total) : 0, has = D.letters.length > 0;
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.sums.textContent = has ? sums.join(" + ") : "—";
+      n.cols.textContent = has ? roots.join(" · ") : "—";
+      n.t.textContent = total;
+      n.r.textContent = has ? r : 0;
+      const data = cols.map((c, i) =>
+        c.map(it => ({ main: it.ch, sub: it.v, cls: isMaster(it.v) ? "mas" : "" }))
+         .concat([{ main: "= " + roots[i], cls: isMaster(roots[i]) ? "mas" : "si" }])
+      );
+      n.g.innerHTML = hGrid(data, { w: 430, rowH: 42, fs: 18 });
+      D.copy = "Pythagorean 3-col: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "p3", tag: "pyramid", trad: "pythagorean", num: "1-9", title: "Ternary reduction tree (P3)",
+    note: "The 3-3-3 grid taken one level further: the letters feed nine Pythagorean cells, those nine reduce to three, and those three reduce to one. Every level shows the running reduction of the level to its left.",
+    back: () =>
+      "<p>Expands the 3-3-3 grid by one generation. It is the same arithmetic as the neighbouring cards, drawn " +
+      "as a reduction tree so you can watch the number contract.</p>" +
+      "<h4>The levels</h4><p>Right column: the letters with their Pythagorean values. Middle column: those nine " +
+      "values reduced to single digits, grouped three at a time, each group summed to show the next level down. " +
+      "Left column: the final group, summed once more.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> gives 1, 5, 4, 9, 5, 1. Those reduce unchanged — every value " +
+      "is already a single digit — so the middle column shows 1+5+4 = 10, 9+5 = 14, 1, and the left column shows " +
+      "10+14+1 = 25, reducing to 7.</p>" +
+      "<h4>What it is for</h4><p>Names with many double-digit letter values make the intermediate levels do real " +
+      "work; short names with small letters do not, and every level reads the same. It is a display, not a " +
+      "separate system — the headline number is always the Pythagorean result.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">level 3&middot;3&middot;3</span><b data-n="l3">&mdash;</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">level 3</span><b data-n="l2">&mdash;</b></div>' +
+        '<div><span class="k">level 1</span><b data-n="l1">&mdash;</b></div>' +
+        '<div><span class="k">grand total</span><b data-n="t">0</b></div>' +
+      '</div></div><div class="diagram" data-n="g"></div>' +
+      '<div class="legend"><span>left: single reduction</span><span>middle: three grouped roots</span>' +
+      '<span>right: the nine letter values</span></div>',
+    update(n, D) {
+      const L = D.letters, has = L.length > 0;
+      const vals = L.map(ch => pythValue(ch.charCodeAt(0)));
+      const total = vals.reduce((a, b) => a + b, 0);
+      const roots = vals.map(reduce);
+
+      const l3 = L.map((ch, i) => ({ main: ch, sub: vals[i], cls: isMaster(vals[i]) ? "mas" : "" }));
+      while (l3.length < 9) l3.push({ main: "", cls: "z" });
+
+      const l2 = [];
+      for (let i = 0; i < 3; i++) {
+        const g = roots.slice(i * 3, i * 3 + 3);
+        const s = g.reduce((a, b) => a + b, 0);
+        l2.push(g.length ? { main: s, sub: reduce(s), cls: s === reduce(s) ? "si" : "" } : { main: "", cls: "z" });
+      }
+      const grand = roots.reduce((a, b) => a + b, 0);
+      const l1 = [{ main: grand, sub: reduce(grand), cls: isMaster(grand) ? "mas" : "si" }];
+
+      const r = has ? masterReduce(total) : 0;
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.l3.textContent = has ? roots.join(" ") : "—";
+      n.l2.textContent = has ? l2.map(c => c.sub || "·").join(" · ") : "—";
+      n.l1.textContent = has ? reduce(grand) : "—";
+      n.t.textContent = total;
+      n.g.innerHTML = hGrid([l1, l2, l3], { w: 620, rowH: 40, fs: 17 });
+      D.copy = "P3 ternary tree: " + (has ? r : "—");
+    }
+  },
+
+  /* ---------- tree ---------- */
+  {
+    id: "seph", tag: "tree", trad: "qabbalah", num: "11-32", wide: true, title: "Sephirotic tree — 22 paths",
+    note: "The 22 Hebrew letters are the 22 paths of the Tree of Life. The Nth letter of the name takes path 10+N; that path number is reduced (11→2, 22→4, …) to name its root sephirah. Compare where the same letters land here and in the Qabbalah card — the two conventions disagree.",
+    back: () =>
+      "<p>In Qabbalah the twenty-two Hebrew letters are not an alphabet to be summed — they are the twenty-two " +
+      "connecting paths of the Tree of Life, running from Kether at the crown down to Yesod at the base, with " +
+      "further paths returning upward.</p>" +
+      "<h4>The mapping</h4><p>The first letter of the name takes path 11, the second path 12, and so on to path " +
+      "32. Paths 1 to 10 are reserved for the ten sephiroth themselves. Reducing a path number gives the sephirah " +
+      "it is rooted in: 11 → 2 (Chokmah), 16 → 7 (Netzach), 22 → 4 (Chesed).</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> takes paths 11 to 16, summing to 81, which reduces to 9. " +
+      "Individually the letters root at sephiroth 2, 3, 4, 6, 7 and 8 — so the name sits mostly in the middle " +
+      "column of the tree.</p>" +
+      "<h4>Relationship to the others</h4><p>This card and the Qabbalah card map the same letters to completely " +
+      "different numbers, because one is counting alphabetical position and the other is indexing a diagram. " +
+      "Both are called Qabbalah, which is precisely why comparing them is useful.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">path sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">path root</span><b data-n="pr">0</b></div>' +
+        '<div><span class="k">A1Z26 root</span><b data-n="ar">0</b></div>' +
+              '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+      '</div></div>' +
+      '<div class="split k2"><div>' +
+        '<div class="sectitle">sephiroth — occupancy</div><div class="seph" data-n="seph"></div>' +
+        '<div class="sectitle">tree reduction</div><div data-n="steps"></div>' +
+      '</div><div><div class="sectitle">the 22 paths</div><div class="pathlist" data-n="pl"></div></div></div>',
+    update(n, D) {
+      const L = D.letters, has = L.length > 0;
+      const occupied = new Array(9).fill(0);
+      const pathSum = L.reduce((a, ch, i) => { occupied[reduce(11 + i) - 1]++; return a + 11 + i; }, 0);
+      const pr = has ? masterReduce(pathSum) : 0;
+      const a1 = L.reduce((a, ch) => a + (ch.charCodeAt(0) - 64), 0);
+      const arr = has ? masterReduce(a1) : 0;
+
+      n.val.textContent = has ? pr : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(pr);
+      n.nl.textContent = L.length;
+      n.sum.textContent = pathSum;
+      n.pr.textContent = has ? pr : 0;
+      n.ar.textContent = has ? arr : 0;
+
+      n.seph.innerHTML = SEPHIROTH.map((s, i) => {
+        const c = occupied[i];
+        return '<div class="ss ' + (c ? "hot" : "") + '"><div class="n">' + (i + 1) + "</div>" +
+               '<div class="t">' + s + '</div><div class="c">' +
+               (c ? c + " letter" + (c > 1 ? "s" : "") : "—") + "</div></div>";
+      }).join("");
+
+      n.steps.innerHTML = has
+        ? steps([11, op("…"), 10 + L.length, op("="), pathSum, op("→"), pr])
+        : "";
+
+      n.pl.innerHTML = PATHS.map((p, i) => {
+        const num = 11 + i, ch = L[i];
+        return '<div class="pl ' + (ch ? "hot" : "") + '"><span class="p">' + num + "</span>" +
+               '<span class="l">' + (ch || "·") + "</span>" +
+               '<span class="d">' + p[0].slice(0, 9) + (p[0] === p[1] ? "" : "↔" + p[1].slice(0, 9)) + "</span>" +
+               '<span class="r">' + reduce(num) + "</span></div>";
+      }).join("");
+      D.copy = "Sephirotic: path root " + (has ? pr : "—") + " / A1Z26 root " + arr;
+    }
+  },
+
+  /* ---------- grid ---------- */
+  {
+    id: "loshu", tag: "grid", trad: "chinese", num: "1-9", title: "Lo Shu magic square",
+    note: "Each letter is reduced to a single digit and counted into the 3×3 magic square (4-9-2 / 3-5-7 / 8-1-6). Numbers that never appear stay empty. The centre, 5, is the balance point — the flatter the distribution, the more “balanced” the name is said to be.",
+    back: () =>
+      "<p>The Lo Shu is the oldest magic square arrangement known: every row, column and diagonal of the " +
+      "3×3 grid sums to fifteen. It is also called the Fu Xi square and appears in Chinese, Jewish and " +
+      "Hinduic traditions independently.</p>" +
+      "<h4>The method</h4><p>Each letter is first reduced to a single digit — here using the Pythagorean 1–9 " +
+      "cycle — and then counted into its cell. Numbers that never occur in the name stay empty. The grid is " +
+      "fixed: the cell at the centre is always 5.</p>" +
+      "<h4>Balance</h4><p>The <code>balance</code> row is a simple measure of how evenly the letters spread " +
+      "across the nine cells, from the standard deviation of the cell counts. A name that fills every digit " +
+      "roughly once is flat; a name that piles into three or four cells is scattered. This is a descriptive " +
+      "statistic computed here, not a traditional Qabbalah calculation.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> reduces to 1, 5, 4, 9, 5, 1 — five of nine digits present, " +
+      "with 2, 3, 6, 7 and 8 missing and three letters sitting in the centre cell.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">digits present</span><b data-n="nd">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">missing</span><b data-n="miss">&mdash;</b></div>' +
+        '<div><span class="k">centre (5)</span><b data-n="c5">0</b></div>' +
+        '<div><span class="k">balance</span><b data-n="bal">&mdash;</b></div>' +
+      '</div></div><div class="g9" data-n="g9"></div>' +
+      '<div class="sectitle">distribution</div><div class="bars" data-n="bars"></div>',
+    update(n, D) {
+      const vals = D.letters.map(ch => reduce(pythValue(ch.charCodeAt(0))));
+      const counts = new Array(10).fill(0);
+      vals.forEach(v => { if (v >= 1 && v <= 9) counts[v]++; });
+      const missing = [];
+      for (let d = 1; d <= 9; d++) if (!counts[d]) missing.push(d);
+      const present = 9 - missing.length;
+      const max = Math.max(1, ...LO_SHU.map(v => counts[v]));
+      const cells = LO_SHU.map(v => counts[v]);
+      const avg = cells.reduce((a, b) => a + b, 0) / 9;
+      const dev = Math.sqrt(cells.reduce((a, b) => a + (b - avg) * (b - avg), 0) / 9);
+      const bal = !D.letters.length ? "—"
+        : dev === 0 ? "perfect" : dev < 1 ? "tight" : dev < 2.2 ? "loose" : "scattered";
+      const r = D.letters.length ? masterReduce(vals.reduce((a, b) => a + b, 0)) : 0;
+
+      n.val.textContent = D.letters.length ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.nd.textContent = present + " / 9";
+      n.miss.textContent = missing.length ? missing.join(", ") : "none";
+      n.c5.textContent = counts[5];
+      n.bal.textContent = bal;
+      n.g9.innerHTML = LO_SHU.map(v =>
+        '<div class="gcell ' + (v === 5 ? "master" : counts[v] ? "hot" : "empty") + '">' +
+        '<span class="s">cell</span><span class="n">' + v + '</span><span class="s">' +
+        (counts[v] ? counts[v] + "×" : "empty") + "</span></div>"
+      ).join("");
+      n.bars.innerHTML = LO_SHU.map(v =>
+        '<div class="bar"><span class="lb">' + v + '</span><span class="tr"><span class="fl" style="width:' +
+        Math.round((counts[v] / max) * 100) + '%"></span></span><span class="vl">' + counts[v] + "</span></div>"
+      ).join("");
+      D.copy = "Lo Shu: " + present + "/9 digits present" + (missing.length ? ", missing " + missing.join(" ") : "");
+    }
+  },
+
+  /* ---------- encoding / modern / math / structural ---------- */
+  {
+    id: "morse", tag: "encoding", trad: "modern", num: "other", title: "Morse code reduction",
+    note: "Each letter is spelled in Morse, a dot counting 1 and a dash 2; the letter's value is the digital root of its own dot/dash total, and the name reduces to the sum of those values. Treat this as a display, not an accepted system — but it is a good way to see the shape of a name.",
+    back: () =>
+      "<p>Included because it is the one card on the sheet that reduces something that is not a number or a " +
+      "letter value: the symbol pattern of the encoding itself.</p>" +
+      "<h4>The weights</h4><p>A dot is counted as 1 and a dash as 2 — chosen because a dash is roughly twice " +
+      "the length of a dot, so this measures transmitted duration rather than abstract weight. The weighting is " +
+      "mine, not traditional; any consistent weighting would work.</p>" +
+      "<h4>Method</h4><p>Each letter is spelled out, its dots and dashes counted, and the total reduced to a " +
+      "single digit. The name is then the sum of those letter values, reduced in turn.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> — A = <code>.-</code> = 1+2 = 3; N = <code>-.</code> = 3; " +
+      "D = <code>-..</code> = 4; R = <code>.-.</code> = 4; E = <code>.</code> = 1; A = 3. Total 18, " +
+      "reducing to 9.</p>" +
+      "<h4>Honest caveat</h4><p>No numerological tradition reduces Morse code this way. It is a display " +
+      "convention added here because it happens to distinguish names that every other table scores alike — but " +
+      "it should not be presented as a received system.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">dots</span><b data-n="d">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">dashes</span><b data-n="da">0</b></div>' +
+        '<div><span class="k">raw total</span><b data-n="t">0</b></div>' +
+        '<div><span class="k">reduced</span><b data-n="r">0</b></div>' +
+      '</div></div><div data-n="steps"></div>' +
+      '<div class="sectitle">letter by letter</div>' +
+      '<div class="scroll"><table><thead><tr><th class="c">letter</th><th class="c">morse</th>' +
+      '<th class="n">dots</th><th class="n">dashes</th><th class="n">value</th><th class="n">root</th>' +
+      '</tr></thead><tbody data-n="tbody"></tbody></table></div>',
+    update(n, D) {
+      const rows = D.letters.map(ch => {
+        const code = MORSE[ch];
+        if (!code) return null;
+        const dots = (code.match(/\./g) || []).length;
+        const dashes = (code.match(/-/g) || []).length;
+        const v = dots * DOT + dashes * DASH;
+        return { ch, code, dots, dashes, v, root: reduce(v) };
+      }).filter(Boolean);
+      const dots = rows.reduce((a, b) => a + b.dots, 0);
+      const dashes = rows.reduce((a, b) => a + b.dashes, 0);
+      const raw = rows.reduce((a, b) => a + b.v, 0);
+      const letterTotal = rows.reduce((a, b) => a + b.root, 0);
+      const r = rows.length ? masterReduce(letterTotal) : 0, has = rows.length > 0;
+
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.d.textContent = dots;
+      n.da.textContent = dashes;
+      n.t.textContent = raw;
+      n.r.textContent = has ? r : 0;
+      n.steps.innerHTML = has
+        ? steps([dots + "· + " + dashes + "–", op("→"), raw, op("→"), letterTotal, op("→"), r])
+        : "";
+      n.tbody.innerHTML = rows.map(x =>
+        '<tr><td class="c"><b>' + x.ch + '</b></td><td class="c mono"><span class="dot">·</span>'.repeat(x.dots) +
+        '<span class="dash">–</span>'.repeat(x.dashes) + "</td>" +
+        '<td class="n">' + x.dots + '</td><td class="n">' + x.dashes + "</td>" +
+        '<td class="n">' + x.v + '</td><td class="n" style="font-weight:700' +
+        (isMaster(x.root) ? ";color:var(--nq-gold)" : ";color:var(--nq-ok)") + '">' + x.root + "</td></tr>"
+      ).join("") || '<tr><td colspan="6" class="dim">no letters</td></tr>';
+      D.copy = "Morse reduction: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "tel", tag: "modern", trad: "modern", num: "other", title: "Telephone keypad (T9)",
+    note: "Every letter takes the number of the key it shares on a phone keypad — PQRS on 7, WXYZ on 9. Summing those digits and reducing gives the modern “name number”, which is how most people check a name against a phone number.",
+    back: () =>
+      "<p>The most recent system here, and the one most people's first guess at numerology actually is: the " +
+      "phone keypad.</p>" +
+      "<h4>The mapping</h4><p>Every letter takes the digit of the key it shares: ABC on 2, DEF on 3, GHI on 4, " +
+      "JKL on 5, MNO on 6, PQRS on 7, TUV on 8, WXYZ on 9. The key number is added to the digit string and the " +
+      "sum reduced as usual.</p>" +
+      "<h4>Why it feels right</h4><p>Because it is the one table people already carry in their heads. Most of " +
+      "the web presence of numerology is really this method, often presented alongside the claim that names " +
+      "should match a phone number or a house number.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> reads 263529, which sums to 27 and reduces to 9. " +
+      "Note that the modern system has no notion of master numbers: 27 becomes 9, never 27 or 9-and-9.</p>" +
+      "<h4>Caveat</h4><p>The layout is twentieth-century. It was designed to fit letters onto twelve keys, not " +
+      "to carry meaning, and no early tradition used it.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">digit string</span><b data-n="ds">&mdash;</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+        '<div><span class="k">raw sum</span><b data-n="sum">0</b></div>' +
+        '<div><span class="k">chain</span><b data-n="ch">&mdash;</b></div>' +
+        '<div><span class="k">reduced</span><b data-n="r">0</b></div>' +
+      '</div></div><div class="strip" data-n="strip"></div>' +
+      '<div class="sectitle">letters by key</div><div class="chips" data-n="chips"></div>',
+    update(n, D) {
+      const ds = D.letters.map(ch => TEL[ch]);
+      const sum = ds.reduce((a, b) => a + b, 0);
+      const r = ds.length ? masterReduce(sum) : 0, has = ds.length > 0;
+      n.val.textContent = has ? r : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.val.className = "big " + bigCls(r);
+      n.ds.textContent = has ? ds.join("") : "—";
+      n.sum.textContent = sum;
+      n.ch.textContent = has ? chain(sum).join(" → ") : "—";
+      n.r.textContent = has ? r : 0;
+      n.strip.innerHTML = has
+        ? ds.map(d => '<span class="d">' + d + "</span>").join('<span class="op">·</span>') +
+          '<span class="eq">=</span><span class="d">' + sum + '</span><span class="eq">&rarr;</span><span class="d out">' + r + "</span>"
+        : '<span class="empty">no letters</span>';
+      n.chips.innerHTML = D.letters.map(ch =>
+        '<span class="chip"><span class="t">' + ch + '</span><span class="s dim">' +
+        TEL[ch] + "</span></span>").join("");
+      D.copy = "Telephone keypad: " + (has ? r : "—");
+    }
+  },
+
+  {
+    id: "math", tag: "math", trad: "arithmetic", num: "other", title: "Modular & mathematical view",
+    note: "The same sums seen from number theory: unreduced totals, their residues, and every letter alphabet in one table. Use it to predict which cards can possibly agree before you read them.",
+    back: () =>
+      "<p>Not a numerological system at all. This card exists to let you work out in advance which of the other " +
+      "cards are even capable of agreeing with each other.</p>" +
+      "<h4>Residues</h4><p>Two numbers reduced by digital root always agree when they are congruent modulo 9, " +
+      "and can never agree otherwise. The residue grid makes that visible: if the raw sums differ but the mod-9 " +
+      "column matches, the two cards are obliged to give the same answer.</p>" +
+      "<h4>Alphabet comparison</h4><p>Every letter table on this sheet in one place, with its raw total, its " +
+      "reduction and its residues. Three of these seven rows will usually agree by coincidence alone.</p>" +
+      "<h4>Worked example</h4><p><code>ANDREA</code> — Pythagorean 66, Chaldean 15, gematria 261, telephone 27. " +
+      "Four different sums for six letters. Their roots land on 3, 6, 9 and 9 respectively; the telephone and " +
+      "gematria rows agree only because 27 and 261 share a residue.</p>" +
+      "<h4>How to use it</h4><p>Read this card first. If the tables you care about cannot agree, no amount of " +
+      "care in typing the name will change that.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="dr">&mdash;</div><div class="meta">' +
+        '<div><span class="k">digit sum</span><b data-n="ds">0</b></div>' +
+        '<div><span class="k">A1Z26 sum</span><b data-n="a1">0</b></div>' +
+        '<div><span class="k">A1Z26 root</span><b data-n="a1m">0</b></div>' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">hebrew order</span><b data-n="hb">0</b></div>' +
+      '</div></div>' +
+      '<div class="sectitle">residues</div><div class="g9" data-n="g9"></div>' +
+      '<div class="sectitle">every alphabet, side by side</div>' +
+      '<div class="scroll"><table><thead><tr><th>measure</th><th class="n">raw</th>' +
+      '<th class="n">reduced</th><th class="n">mod 9</th><th class="n">mod 10</th></tr></thead>' +
+      '<tbody data-n="tbody"></tbody></table></div>',
+    update(n, D) {
+      const ds = D.digits.reduce((a, b) => a + b, 0);
+      const dr = D.digits.length ? reduce(ds) : 0;
+      const a1 = D.letters.reduce((a, ch) => a + (ch.charCodeAt(0) - 64), 0);
+      const a1m = D.letters.length ? reduce(a1) : 0;
+      const shown = D.digits.length ? dr : a1m;
+
+      n.dr.textContent = (D.digits.length || D.letters.length) ? shown : "—";
+      n.hb.textContent = D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0);
+      n.dr.className = "big " + bigCls(shown);
+      n.ds.textContent = ds;
+      n.a1.textContent = a1;
+      n.a1m.textContent = a1m;
+      n.nl.textContent = D.letters.length;
+
+      const g = [
+        ["digits", ds], ["A1Z26", a1],
+        ["Pythagorean", D.letters.reduce((a, ch) => a + pythValue(ch.charCodeAt(0)), 0)],
+        ["Chaldean 1–9", D.letters.reduce((a, ch) => a + chaldeanValue(ch.charCodeAt(0)), 0)],
+        ["Chaldean 1–8", D.letters.reduce((a, ch) => a + chaldean8(ch), 0)],
+        ["gematria", D.letters.reduce((a, ch) => a + gematria(ch.charCodeAt(0)), 0)],
+        ["alphanum.", D.letters.reduce((a, ch) => a + ANQ[ch.charCodeAt(0) - 65], 0)],
+        ["A=10…Z=35", D.letters.reduce((a, ch) => a + hebrewOrder(ch.charCodeAt(0)), 0)],
+        ["telephone", D.letters.reduce((a, ch) => a + TEL[ch], 0)],
+        ["letter count", D.letters.length]
+      ];
+      n.tbody.innerHTML = g.map(x =>
+        '<tr><td>' + x[0] + '</td><td class="n">' + x[1] + "</td>" +
+        '<td class="n" style="color:var(--nq-ok);font-weight:700">' + (x[1] ? masterReduce(x[1]) : 0) + "</td>" +
+        '<td class="n dim">' + (x[1] % 9) + "</td>" +
+        '<td class="n dim">' + (x[1] % 10) + "</td></tr>"
+      ).join("");
+
+      n.g9.innerHTML = [
+        ["Σ digits", "unreduced", ds], ["Σ digits", "mod 9", ds % 9], ["Σ digits", "mod 10", ds % 10],
+        ["digits", "root (0→9)", dr], ["Σ letters", "A1Z26 raw", a1], ["Σ letters", "A1Z26 mod 9", a1 % 9],
+        ["letters", "A1Z26 root", a1m], ["letters", "count", D.letters.length],
+        ["letters", "count root", D.letters.length ? masterReduce(D.letters.length) : 0]
+      ].map((c, i) =>
+        '<div class="gcell ' + ([3, 6, 8].indexOf(i) >= 0 ? "hot" : "") + '"><span class="s">' + esc(c[0]) + "</span>" +
+        '<span class="l xs">' + esc(c[1]) + '</span><span class="n">' + c[2] + "</span></div>"
+      ).join("");
+      D.copy = "Digit sum " + ds + " (root " + dr + ") · A1Z26 " + a1 + " (root " + a1m + ")";
+    }
+  },
+
+  {
+    id: "len", tag: "structural", trad: "arithmetic", num: "other", title: "Word length & ordinals",
+    note: "Length carries as much weight in numerology as the letters do. Shown as the raw count, its digital root, and the same count taken per word so uneven names are obvious.",
+    back: () =>
+      "<p>Structural rather than alphabetical: no letter table is consulted, only how many letters there are.</p>" +
+      "<h4>Why it is taken seriously</h4><p>It is the one measure that survives every disagreement on this " +
+      "sheet. Every table gives some number for a name, but they all agree on how long it is, which is why " +
+      "length is often used as the neutral tie-breaker between two systems.</p>" +
+      "<h4>Reading it</h4><p>The per-word chips show count and root for each word separately. A name split 7-2 " +
+      "is a different shape from one split 5-4 even when both total nine — which is the only thing this card " +
+      "sees that the others miss.</p>" +
+      "<h4>Master numbers</h4><p>The count is reduced with masters preserved, so eleven letters give 11, " +
+      "twenty-two give 22 and thirty-three give 33.</p>" +
+      "<h4>Worked example</h4><p><code>ALEKSANDR PUSHKIN</code> — sixteen letters in two words, averaging 8.0 " +
+      "each, which reduces to 7.</p>",
+    html: () =>
+      '<div class="bigrow"><div class="big" data-n="val">&mdash;</div><div class="meta">' +
+        '<div><span class="k">characters</span><b data-n="nc">0</b></div>' +
+        '<div><span class="k">letters</span><b data-n="nl">0</b></div>' +
+        '<div><span class="k">words</span><b data-n="nw">0</b></div>' +
+        '<div><span class="k">avg / word</span><b data-n="avg">0</b></div>' +
+      '</div></div><div data-n="steps"></div>' +
+      '<div class="sectitle">per word — count → root</div><div class="chips" data-n="chips"></div>',
+    update(n, D) {
+      const words = D.words, nl = D.letters.length, nw = words.length;
+      const avg = nw ? nl / nw : 0;
+      const has = nl > 0;
+      const r = masterReduce(nl);
+      n.val.textContent = has ? r : "—";
+      n.val.className = "big " + bigCls(r);
+      n.nc.textContent = D.s.length;
+      n.nl.textContent = nl;
+      n.nw.textContent = nw;
+      n.avg.textContent = avg ? avg.toFixed(1) : 0;
+      n.steps.innerHTML = has
+        ? (r === reduce(nl) ? steps([nl, op("→"), r]) : steps([nl, op("→"), reduce(nl), op("→"), r]))
+        : "";
+      n.chips.innerHTML = words.map(w => {
+        const L = norm(w).replace(/[^A-Z]/g, "");
+        const rr = masterReduce(L.length);
+        return '<span class="chip' + (isMaster(rr) ? " hot" : "") + '" style="min-width:auto">' +
+               '<span class="t sm">' + esc(w) + "</span>" +
+               '<span class="s dim">' + L.length + " → " + rr + "</span></span>";
+      }).join("") || '<span class="empty">nothing typed</span>';
+      D.copy = "Length: " + nl + " letter" + (nl === 1 ? "" : "s") + " in " + nw +
+               " word" + (nw === 1 ? "" : "s") + " → " + (has ? r : "—");
+    }
+  }
+
+  ];
+
+  /* ==========================================================================
+     5. STYLES
+     ========================================================================== */
+
+  const CSS = `
+.nq{
+  --nq-line:  color-mix(in srgb, currentColor 22%, transparent);
+  --nq-faint: color-mix(in srgb, currentColor 11%, transparent);
+  --nq-fill:  color-mix(in srgb, currentColor 5%,  transparent);
+  --nq-dim:   color-mix(in srgb, currentColor 62%, transparent);
+  --nq-ok:    #3aa76d;
+  --nq-gold:  #b8860b;
+  --nq-hot:   #c0398f;
+  --nq-gap:   12px;
+  --nq-mono:  ui-monospace, SFMono-Regular, "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+  color: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+.nq *,.nq *::before,.nq *::after{box-sizing:border-box}
+.nq .mono{font-family:var(--nq-mono)}
+.nq .dimtxt,.nq td.dim,.nq .dim{color:var(--nq-dim)}
+
+/* ---- header: tag filter + input ---- */
+.nq-top{display:flex;flex-direction:column;gap:10px;margin-bottom:var(--nq-gap)}
+.nq-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.nq-lbl{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--nq-dim);margin-right:2px}
+.nq-tag{
+  font:inherit;font-size:11.5px;line-height:1;
+  background:transparent;border:1px solid var(--nq-line);color:var(--nq-dim);
+  border-radius:999px;padding:5px 11px;cursor:pointer;
+  display:inline-flex;gap:6px;align-items:center;transition:.14s;
+}
+.nq-tag:hover{border-color:currentColor;color:inherit}
+.nq-tag[aria-pressed="true"]{background:var(--nq-fill);color:inherit}
+.nq-tag .cnt{font-family:var(--nq-mono);font-size:10px;opacity:.65}
+/* one pill per card: the count is always 1, so it is just noise there */
+.nq-row.is-none .nq-tag .cnt{display:none}
+.nq-row.is-none .nq-tag{padding:4px 9px}
+
+.nq textarea{
+  width:100%;min-height:64px;resize:vertical;
+  background:transparent;color:inherit;
+  border:1px solid var(--nq-line);border-radius:10px;
+  padding:10px 12px;
+  font-family:var(--nq-mono);font-size:19px;line-height:1.35;letter-spacing:.02em;
+  outline:none;
+}
+.nq textarea:focus{border-color:currentColor}
+.nq-stats{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--nq-dim)}
+.nq-stats b{font-family:var(--nq-mono);color:inherit;font-weight:600}
+.nq-stats .on{color:var(--nq-gold)}
+.nq button.nq-b{
+  font:inherit;font-size:12px;line-height:1;
+  background:transparent;color:var(--nq-dim);
+  border:1px solid var(--nq-line);border-radius:8px;padding:6px 10px;cursor:pointer;transition:.14s;
+}
+.nq button.nq-b:hover{color:inherit;border-color:currentColor}
+
+/* ---- layout: one uniform grid, every card the same width ---- */
+.nq-list{
+  display:grid;
+  grid-template-columns:repeat(var(--nq-cols,3),minmax(0,1fr));
+  align-items:start;
+  gap:var(--nq-gap);
+}
+/* the cards that genuinely need the extra room span the full row; every other
+   card is exactly one column wide, whatever the column count is */
+.nq-list > .nq-card.wide{grid-column:1 / -1}
+
+.nq-card{
+  border:1px solid var(--nq-line);border-radius:10px;
+  padding:11px 12px 10px;position:relative;background:transparent;
+  margin:0;min-width:0;
+}
+.nq-card.mas{border-color:var(--nq-gold)}
+.nq-head{display:flex;align-items:baseline;gap:8px;margin-bottom:9px;padding-right:92px;flex-wrap:wrap}
+.nq-head h3{margin:0;font-size:13px;font-weight:650}
+.nq-head .t{
+  font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--nq-dim);border:1px solid var(--nq-faint);border-radius:4px;padding:2px 5px;
+}
+
+/* corner tool cluster: flip + copy */
+.nq-tools{position:absolute;top:9px;right:9px;display:flex;gap:4px}
+.nq-tb{
+  font:inherit;font-size:10.5px;line-height:1;letter-spacing:.02em;
+  background:transparent;border:1px solid var(--nq-line);color:var(--nq-dim);
+  border-radius:6px;padding:4px 7px;cursor:pointer;white-space:nowrap;
+  transition:background .13s,color .13s,border-color .13s;
+}
+.nq-tb:hover{color:inherit;border-color:currentColor;background:var(--nq-fill)}
+.nq-tb:focus-visible{outline:2px solid currentColor;outline-offset:1px}
+.nq-tb[aria-pressed="true"]{background:var(--nq-fill);color:inherit;border-color:currentColor}
+
+/* faces */
+.nq-face[hidden]{display:none}
+.nq-back{font-size:12px;line-height:1.6;color:var(--nq-dim)}
+.nq-back h4{
+  margin:12px 0 3px;font-size:9.5px;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--nq-dim);
+}
+.nq-back h4:first-child{margin-top:2px}
+.nq-back p{margin:0 0 2px}
+.nq-back b{color:inherit;font-weight:600}
+.nq-back code{
+  font-family:var(--nq-mono);font-size:.92em;
+  border:1px solid var(--nq-faint);border-radius:4px;padding:0 3px;
+}
+.nq-back em{color:inherit;font-style:italic}
+.nq-back .k{color:var(--nq-gold)}
+
+.nq-note{
+  margin-top:9px;padding-top:8px;border-top:1px dashed var(--nq-line);
+  font-size:11px;line-height:1.55;color:var(--nq-dim);
+}
+
+/* ---- result block ---- */
+.nq .bigrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.nq .big{
+  font-family:var(--nq-mono);font-size:44px;line-height:1;font-weight:700;
+  min-width:76px;text-align:center;padding:8px 12px;
+  border:1px solid var(--nq-line);border-radius:10px;
+}
+.nq .big.m11,.nq .big.m22,.nq .big.m33{color:var(--nq-gold);border-color:var(--nq-gold)}
+.nq .big.m0{color:var(--nq-dim)}
+.nq .meta{display:flex;flex-direction:column;gap:2px;font-size:12px;flex:1;min-width:150px}
+.nq .meta > div{display:flex;gap:8px;align-items:baseline}
+.nq .meta .k{color:var(--nq-dim);min-width:86px}
+.nq .meta b{font-family:var(--nq-mono);font-weight:600}
+.nq .meta .mn{color:var(--nq-hot)}
+
+/* ---- generic bits ---- */
+.nq .sectitle{
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--nq-dim);
+  margin:11px 0 3px;display:flex;align-items:center;gap:7px;
+}
+.nq .sectitle::after{content:"";flex:1;height:1px;background:var(--nq-faint)}
+.nq .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.nq .chip{border:1px solid var(--nq-line);border-radius:6px;min-width:29px;padding:3px 5px;text-align:center}
+.nq .chip .t{display:block;font-family:var(--nq-mono);font-size:14px;line-height:1.15}
+.nq .chip .t.sm{font-size:12px}
+.nq .chip .s{display:block;font-family:var(--nq-mono);font-size:10px;color:var(--nq-dim)}
+.nq .chip.vow{border-color:var(--nq-gold)}
+.nq .chip.hot{border-color:var(--nq-hot)}
+.nq .empty{color:var(--nq-dim);font-size:12px}
+
+.nq .strip{display:flex;flex-wrap:wrap;gap:3px;align-items:center;margin-top:9px;font-family:var(--nq-mono);font-size:14px}
+.nq .strip .d{border:1px solid var(--nq-line);border-radius:5px;min-width:25px;padding:3px 4px;text-align:center}
+.nq .strip .d sub{font-size:9px;opacity:.7;margin-left:1px}
+.nq .strip .op,.nq .strip .eq{color:var(--nq-dim);padding:0 2px}
+.nq .strip .out{color:var(--nq-ok);border-color:var(--nq-ok)}
+.nq .nada{flex:1 0 100%;font-size:11.5px;line-height:1.55;color:var(--nq-dim);border-left:2px solid var(--nq-line);padding:6px 9px}
+.nq .nada b{color:inherit}
+
+.nq .rule{margin-top:9px;font-size:11.5px;color:var(--nq-dim);border-left:2px solid var(--nq-line);padding:6px 9px}
+.nq .rule b{font-family:var(--nq-mono);color:inherit}
+
+.nq .scroll{max-height:260px;overflow:auto;border:1px solid var(--nq-line);border-radius:8px;margin-top:6px}
+.nq .scroll::-webkit-scrollbar{width:8px;height:8px}
+.nq .scroll::-webkit-scrollbar-thumb{background:var(--nq-line);border-radius:5px}
+.nq table{width:100%;border-collapse:collapse;font-size:12px}
+.nq th{
+  font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  text-align:left;padding:6px 7px;color:var(--nq-dim);border-bottom:1px solid var(--nq-line);
+}
+.nq td{padding:4px 7px;border-bottom:1px solid var(--nq-faint);vertical-align:middle}
+.nq tbody tr:last-child td{border-bottom:none}
+.nq td.n,.nq th.n{text-align:right;font-family:var(--nq-mono)}
+.nq td.c,.nq th.c{text-align:center}
+.nq td.heb{font-size:15px;line-height:1}
+.nq .dot{color:var(--nq-dim)}
+.nq .dash{color:var(--nq-hot)}
+
+/* ---- svg ---- */
+.nq .diagram{margin-top:8px;overflow:auto}
+.nq .diagram svg{display:block;width:100%;height:auto}
+.nq .tc{fill:var(--nq-fill);stroke:var(--nq-line);stroke-width:1}
+.nq .tc.z{fill:transparent;stroke:var(--nq-faint)}
+.nq .tc.si{fill:var(--nq-fill);stroke:var(--nq-dim)}
+.nq .tc.hot{fill:color-mix(in srgb, var(--nq-hot) 18%, transparent);stroke:var(--nq-hot)}
+.nq .tc.mas{fill:color-mix(in srgb, var(--nq-gold) 20%, transparent);stroke:var(--nq-gold)}
+.nq .tm{fill:currentColor;text-anchor:middle;font-family:var(--nq-mono);font-weight:600}
+.nq .tc.hot + .tm{fill:var(--nq-hot)}
+.nq .tc.mas + .tm,.nq .tc.mas + .ts{fill:var(--nq-gold)}
+.nq .ts{fill:var(--nq-dim);text-anchor:middle;font-family:var(--nq-mono)}
+
+/* ---- 3x3 grids ---- */
+.nq .g9{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}
+.nq .gcell{
+  border:1px solid var(--nq-line);border-radius:8px;padding:8px 5px;text-align:center;min-height:60px;
+  display:flex;flex-direction:column;justify-content:center;gap:1px;
+}
+.nq .gcell .l{font-family:var(--nq-mono);font-size:17px;font-weight:600}
+.nq .gcell .l.sm{font-size:14px}
+.nq .gcell .l.xs{font-size:11px;color:var(--nq-dim);font-weight:400}
+.nq .gcell .n{font-family:var(--nq-mono);font-size:19px;font-weight:700;color:var(--nq-dim)}
+.nq .gcell .n.sm{font-size:14px}
+.nq .gcell .s{font-size:10px;color:var(--nq-dim);font-family:var(--nq-mono)}
+.nq .gcell.empty{opacity:.35;border-style:dashed}
+.nq .gcell.hot{border-color:var(--nq-hot)}
+.nq .gcell.master{border-color:var(--nq-gold)}
+.nq .gcell.master .n,.nq .gcell.hot .n{color:var(--nq-gold)}
+
+/* ---- step chain ---- */
+.nq .steps{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:9px;font-family:var(--nq-mono);font-size:12.5px}
+.nq .steps .s{border:1px solid var(--nq-line);border-radius:6px;padding:4px 7px}
+.nq .steps .arr{color:var(--nq-dim)}
+.nq .steps .s.fin{color:var(--nq-ok);border-color:var(--nq-ok)}
+.nq .steps .s.mas{color:var(--nq-gold);border-color:var(--nq-gold)}
+
+/* ---- bars ---- */
+.nq .bars{display:flex;flex-direction:column;gap:3px;margin-top:7px;font-size:11px}
+.nq .bar{display:flex;align-items:center;gap:8px}
+.nq .bar .lb{font-family:var(--nq-mono);width:14px;color:var(--nq-dim)}
+.nq .bar .tr{flex:1;height:8px;background:var(--nq-fill);border-radius:4px;overflow:hidden}
+.nq .bar .fl{height:100%;background:var(--nq-dim);border-radius:4px}
+.nq .bar .vl{font-family:var(--nq-mono);color:var(--nq-dim);width:24px;text-align:right}
+
+/* ---- sephiroth + paths ---- */
+.nq .seph{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:2px}
+.nq .ss{border:1px solid var(--nq-line);border-radius:7px;padding:5px;text-align:center}
+.nq .ss .n{font-family:var(--nq-mono);font-size:11px;color:var(--nq-dim)}
+.nq .ss .t{font-size:11.5px}
+.nq .ss .c{font-family:var(--nq-mono);font-size:10.5px;color:var(--nq-dim)}
+.nq .ss.hot{border-color:var(--nq-hot)}
+.nq .pathlist{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;margin-top:2px}
+.nq .pl{display:flex;align-items:center;gap:6px;border:1px solid var(--nq-line);border-radius:6px;padding:3px 6px;font-size:11px}
+.nq .pl .p{font-family:var(--nq-mono);color:var(--nq-dim);width:17px}
+.nq .pl .l{font-family:var(--nq-mono);width:13px;font-weight:600}
+.nq .pl .d{color:var(--nq-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nq .pl .r{font-family:var(--nq-mono);color:var(--nq-ok);font-weight:700}
+.nq .pl.hot{border-color:var(--nq-hot)}
+
+/* ---- split / legend ---- */
+.nq .split{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.nq .split.k2{grid-template-columns:1.06fr .94fr}}
+.nq .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:10.5px;color:var(--nq-dim)}
+.nq .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.nq .lg-norm{border:1px solid var(--nq-line);background:var(--nq-fill)}
+.nq .lg-mas{border:1px solid var(--nq-gold);background:color-mix(in srgb,var(--nq-gold) 20%,transparent)}
+.nq .lg-z{border:1px solid var(--nq-faint)}
+.nq .lg-hot{border:1px solid var(--nq-hot);background:color-mix(in srgb,var(--nq-hot) 18%,transparent)}
+
+/* ---- 13-square strip ---- */
+.nq .sq{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-top:6px}
+.nq .sq .q{
+  border:1px solid var(--nq-line);border-radius:4px;text-align:center;
+  padding:2px 0;font-family:var(--nq-mono);font-size:10px;line-height:1.3;color:var(--nq-dim);
+}
+.nq .sq .q .pos{font-size:9px;opacity:.6}
+.nq .sq .q.hot{border-color:var(--nq-hot);color:var(--nq-hot)}
+
+/* ---- alphanumerical grid ---- */
+.nq .anq{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:3px;margin-top:2px}
+.nq .ac{border:1px solid var(--nq-faint);border-radius:5px;padding:3px 1px;text-align:center;opacity:.45;transition:.14s}
+.nq .ac.on{opacity:1;border-color:var(--nq-line);background:var(--nq-fill)}
+.nq .ac.mas{border-color:var(--nq-gold)}
+.nq .ac .l{display:block;font-family:var(--nq-mono);font-size:12px;font-weight:600}
+.nq .ac .h{display:block;font-size:12px;line-height:1.1}
+.nq .ac .v{display:block;font-family:var(--nq-mono);font-size:8.5px;color:var(--nq-dim);line-height:1.2}
+.nq .ac.on .v{color:inherit}
+
+.nq-reps{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11px;color:var(--nq-dim)}
+.nq-reps .rb{
+  font-family:var(--nq-mono);font-weight:700;color:var(--nq-gold);
+  border:1px solid var(--nq-gold);border-radius:5px;padding:2px 7px;
+}
+.nq-reps .rp{font-size:10px;opacity:.85}
+.nq-ctl{
+  margin-top:9px;padding-top:8px;border-top:1px dashed var(--nq-line);
+  font-size:10.5px;line-height:1.6;color:var(--nq-dim);
+}
+.nq-modes{margin-bottom:9px}
+.nq-modes .nq-tag{font-size:11px}
+.nq-moderow .nq-tag[aria-pressed="true"]{
+  border-color:currentColor;background:var(--nq-fill);
+}
+.nq-sep{width:1px;height:16px;background:var(--nq-line);margin:0 4px}
+/* "auto" packs as many columns as the container allows, but never narrower
+   than the reader's viewport can usefully carry */
+.nq.is-auto .nq-list{grid-template-columns:repeat(auto-fit,minmax(min(330px,100%),1fr))}
+
+.nq-foot{
+  margin-top:var(--nq-gap);padding-top:10px;border-top:1px solid var(--nq-line);
+  font-size:11px;line-height:1.65;color:var(--nq-dim);
+}
+.nq-foot b{color:inherit}
+`;
+
+  /* ==========================================================================
+     6. MOUNT
+     ========================================================================== */
+
+  const anchor = document.currentScript;
+  const host = (anchor && anchor.parentNode) ? anchor.parentNode : document.body;
+
+  /* Fingerprint this script's own source. Obsidian re-runs the block when a
+     note re-renders, which would stack up duplicate widgets; matching on the
+     fingerprint plus "sits immediately before this script" removes only our own
+     stale instance, and leaves a genuine second embed elsewhere untouched. */
+  const srcText = (anchor && anchor.textContent) || "";
+  let fp = 0;
+  for (let i = 0; i < srcText.length; i++) fp = (fp * 31 + srcText.charCodeAt(i)) | 0;
+  const FINGERPRINT = String(fp);
+
+  const prev = anchor && anchor.previousElementSibling;
+  if (prev && prev.classList && prev.classList.contains("nq") && prev.__nqSrc === FINGERPRINT) {
+    prev.parentNode.removeChild(prev);
+  }
+
+  // one shared stylesheet per distinct stylesheet body
+  let style = null;
+  document.querySelectorAll("style[data-nq]").forEach(s => {
+    if (s.textContent === CSS) style = s;
+  });
+  if (!style) {
+    style = document.createElement("style");
+    style.setAttribute("data-nq", "");
+    style.textContent = CSS;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  const root = document.createElement("div");
+  root.className = "nq";
+  root.__nqSrc = FINGERPRINT;
+
+  /* Column count is a setting, but the picker must not be able to leave the
+     grid in a state wider than the reader's screen. */
+  let cols = COLUMN_CHOICES.indexOf(COLUMNS) >= 0 ? COLUMNS : 3;
+  const applyCols = () => {
+    root.style.setProperty("--nq-cols", cols || "auto");
+    root.classList.toggle("is-auto", !cols);
+  };
+
+  /* ---- grouping: tradition | numeral | result | none ----
+     "none" keys on the card's own id, so the row lists one pill per card
+     instead of collapsing them back into their old theme groups. */
+
+  const MODES = [
+    { id: "tradition", label: "tradition", key: s => s.trad },
+    { id: "numeral",   label: "numeral",   key: s => s.num },
+    { id: "result",    label: "by result", key: s => (s.res === null ? "—" : String(s.res)) },
+    { id: "none",      label: "no grouping", key: s => s.id }
+  ];
+  let mode = MODES.some(m => m.id === GROUP_MODE) ? GROUP_MODE : "none";
+
+  /* On-state per mode, seeded from DEFAULT_TAGS. "result" is not seeded: it
+     is derived from the live numbers, and starts with everything visible. */
+  const on = {};
+  /* Result groups are not a fixed list: they depend on what the input currently
+     produces. A key that has gone out of play keeps its state, so switching back
+     and forth is stable; a key that has never been seen reads as on, so a
+     result appearing for the first time is not silently hidden. */
+  const isResult = m => m.id === "result";
+
+  MODES.forEach(m => {
+    on[m.id] = {};
+    if (isResult(m)) return;
+    const want = DEFAULT_TAGS[m.id] || [];
+    const star = want.indexOf("*") >= 0;
+    SYSTEMS.forEach(s => { on[m.id][m.key(s)] = star || want.indexOf(m.key(s)) >= 0; });
+  });
+
+  /* groupOn takes the mode entry AND the key. It must not call m.key() itself:
+     that function reads a card off its argument and would throw when handed
+     nothing. */
+  const groupOn = (m, k) => {
+    if (isResult(m)) return k in on.result ? on.result[k] : true;
+    return !!on[m.id][k];
+  };
+
+  /* In "none" mode each card is its own pill, so shorten the labels to keep the
+     row readable; elsewhere the group key is already short. */
+  const SHORT = {
+    simple: "digital root", reverse: "reverse add", pyth: "pythagorean",
+    chaldean: "chaldean", qabbalah: "qabbalah", alphaq: "alphabetical",
+    anglossic: "anglossic", tolife: "tree of life", pythchart: "45 cells",
+    chpyr: "chaldean pyr.", chrev: "reversed pyr.", affirm: "affirmation",
+    pyth3: "3-column", p3: "P3 ternary", seph: "sephirotic", loshu: "lo shu",
+    morse: "morse", tel: "keypad", math: "modular", len: "length"
+  };
+
+  const order = m => {
+    const seen = [];
+    SYSTEMS.forEach(s => { const k = m.key(s); if (seen.indexOf(k) < 0) seen.push(k); });
+    return seen;
+  };
+  /* In result mode the groups are numbers: put masters first, then ascending. */
+  const sortedResults = keys => keys.slice().sort((a, b) => {
+    const x = a === "—" ? 1e9 : +a, y = b === "—" ? 1e9 : +b;
+    return (isMaster(x) === isMaster(y)) ? x - y : (isMaster(x) ? -1 : 1);
+  });
+
+  const groupKey = () => MODES.find(m => m.id === mode);
+  const isOn = k => groupOn(groupKey(), k);
+
+  function tagRow() {
+    const m = groupKey();
+    let keys = order(m);
+    if (mode === "result") keys = sortedResults(keys);
+    const counts = {};
+    SYSTEMS.forEach(s => { const k = m.key(s); counts[k] = (counts[k] || 0) + 1; });
+    const none = mode === "none";
+    return '<div class="nq-row' + (none ? " is-none" : "") + '"><span class="nq-lbl">' +
+      (none ? "cards" : "tags") + "</span>" +
+      keys.map(k =>
+        '<button class="nq-tag" type="button" data-nqtag="' + esc(k) + '" aria-pressed="' + isOn(k) + '">' +
+        esc(none ? (SHORT[k] || k) : (GROUP_LABELS[k] || k)) +
+        '<span class="cnt">' + counts[k] + "</span></button>").join("") +
+      '<button class="nq-tag" type="button" id="nq-all">all</button>' +
+      '<button class="nq-tag" type="button" id="nq-none">none</button></div>';
+  }
+
+  const modeRow =
+    '<div class="nq-row nq-moderow"><span class="nq-lbl">group by</span>' +
+    MODES.map(m =>
+      '<button class="nq-tag" type="button" data-nqmode="' + m.id + '" aria-pressed="' +
+      (mode === m.id) + '">' + esc(m.label) + "</button>").join("") +
+    '<span class="nq-sep"></span><span class="nq-lbl">columns</span>' +
+    COLUMN_CHOICES.map(c =>
+      '<button class="nq-tag" type="button" data-nqcols="' + c + '" aria-pressed="' +
+      (cols === c) + '">' + (c || "auto") + "</button>").join("") + "</div>";
+
+  const inputRow =
+    '<div class="nq-row">' +
+      PRESETS.map(p => '<button class="nq-b" type="button" data-preset="' + esc(p) + '">' + esc(p) + "</button>").join("") +
+      '<button class="nq-b" type="button" id="nq-clear">clear</button>' +
+    "</div>" +
+    '<textarea id="nq-input" spellcheck="false" autocomplete="off" ' +
+      'placeholder="type a name, a date, anything..."></textarea>' +
+    '<div class="nq-stats" id="nq-stats"></div>';
+
+  root.innerHTML =
+    '<div class="nq-top">' + modeRow +
+      '<div id="nq-tagrow">' + tagRow() + "</div>" + inputRow + "</div>" +
+    '<div class="nq-list" id="nq-list"></div>' +
+    '<div class="nq-foot">' +
+      "<b>Master numbers.</b> 11, 22 and 33 are kept unreduced inside the letter systems and outlined in gold; " +
+      "plain digital root can never produce them. &nbsp;<b>Zero.</b> Chaldean keeps 0 as 0, because digits contribute " +
+      "nothing to its letter total, while every other system applies the 0 &rarr; 9 rule. &nbsp;<b>Tags.</b> " +
+      "The pills above regroup by tradition, by the numeral each system uses, or by the figure each card " +
+      "currently returns; “no grouping” lists every card on its own. Click one to show or hide it. " +
+      "Which ones start on is the DEFAULT_TAGS object at the top of the script." +
+    "</div>";
+
+  host.insertBefore(root, anchor || null);
+
+  /* ---- build cards: one grid, cards in sheet order ---- */
+  const listBox = root.querySelector("#nq-list");
+  applyCols();
+
+  SYSTEMS.forEach(s => {
+    const el = document.createElement("section");
+    el.className = "nq-card" + (s.wide ? " wide" : "");
+    el.dataset.cardtag = s.tag;
+    el.innerHTML =
+      '<div class="nq-head"><h3>' + esc(s.title) + '</h3><span class="t">' + esc(s.tag) + "</span></div>" +
+      '<div class="nq-tools">' +
+        '<button class="nq-tb" type="button" data-role="flip" aria-pressed="false" ' +
+          'title="show the extended explanation">flip</button>' +
+        '<button class="nq-tb" type="button" data-role="copy" title="copy this result">copy</button>' +
+      "</div>" +
+      '<div class="nq-face" data-face="front">' +
+        s.html() +
+        '<div class="nq-note">' + esc(s.note) + "</div>" +
+      "</div>" +
+      '<div class="nq-face nq-back" data-face="back" hidden>' + s.back() + "</div>";
+
+    listBox.appendChild(el);
+
+    const n = {};
+    el.querySelectorAll("[data-n]").forEach(node => { n[node.dataset.n] = node; });
+    s.el = el; s.n = n;
+
+    /* one-off wiring, for cards that need their own controls */
+    if (typeof s.mount === "function") { try { s.mount(el, n); } catch (err) {} }
+
+    /* flip front <-> back */
+    const flipBtn = el.querySelector('[data-role="flip"]');
+    const front = el.querySelector('[data-face="front"]');
+    const back = el.querySelector('[data-face="back"]');
+    flipBtn.addEventListener("click", () => {
+      const on = back.hidden;
+      back.hidden = !on;
+      front.hidden = on;
+      flipBtn.textContent = on ? "back" : "flip";
+      flipBtn.title = on ? "show the result again" : "show the extended explanation";
+      flipBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+
+    /* copy the current result */
+    const copyBtn = el.querySelector('[data-role="copy"]');
+    copyBtn.addEventListener("click", () => {
+      const txt = s.copyVal || "—";
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).catch(() => {});
+      }
+      copyBtn.textContent = "ok";
+      setTimeout(() => { copyBtn.textContent = "copy"; }, 700);
+    });
+  });
+
+  /* ---- tag + mode wiring ---- */
+  const tagBox = root.querySelector("#nq-tagrow");
+
+  function repaintTags() {
+    tagBox.innerHTML = tagRow();
+    repaintTags._sig = mode === "result" ? order(groupKey()).sort().join("|") : "";
+    root.querySelectorAll("[data-nqmode]").forEach(b =>
+      b.setAttribute("aria-pressed", b.dataset.nqmode === mode ? "true" : "false"));
+  }
+
+  /* Show a card if every group it belongs to is on. In result mode a card with
+     no result ("—") has its own group, so it filters alongside the numbers. */
+  function applyFilter() {
+    const m = groupKey();
+    SYSTEMS.forEach(s => { s.el.style.display = isOn(m.key(s)) ? "" : "none"; });
+    root.querySelectorAll("[data-nqtag]").forEach(b =>
+      b.setAttribute("aria-pressed", isOn(b.dataset.nqtag) ? "true" : "false"));
+  }
+
+  function toggle(k) {
+    on[mode][k] = !groupOn(groupKey(), k);
+    paint();
+  }
+
+  /* Delegate, so the row can be rebuilt at any time without rebinding. The
+     count badge is a child span, hence closest(); "all"/"none" carry an id and
+     no data-nqtag, so they must be matched on their own. */
+  tagBox.addEventListener("click", e => {
+    const b = e.target.closest(".nq-tag");
+    if (!b || !tagBox.contains(b)) return;
+    if (b.id === "nq-all") { order(groupKey()).forEach(x => { on[mode][x] = true; }); paint(); return; }
+    if (b.id === "nq-none") { order(groupKey()).forEach(x => { on[mode][x] = false; }); paint(); return; }
+    if (b.dataset.nqtag !== undefined) toggle(b.dataset.nqtag);
+  });
+
+  root.querySelectorAll("[data-nqmode]").forEach(b => b.addEventListener("click", () => {
+    mode = b.dataset.nqmode;
+    repaintTags();
+    paint();
+  }));
+
+  root.querySelectorAll("[data-nqcols]").forEach(b => b.addEventListener("click", () => {
+    cols = +b.dataset.nqcols;
+    applyCols();
+    root.querySelectorAll("[data-nqcols]").forEach(x =>
+      x.setAttribute("aria-pressed", +x.dataset.nqcols === cols ? "true" : "false"));
+  }));
+
+  /* ==========================================================================
+     7. LIVE PIPELINE
+     ========================================================================== */
+
+  const input = root.querySelector("#nq-input");
+  const stats = root.querySelector("#nq-stats");
+
+  function analyze(raw) {
+    const s = norm(raw);
+    const letters = [], digits = [];
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (c >= "0" && c <= "9") digits.push(+c);
+      else if (c >= "A" && c <= "Z") letters.push(c);
+    }
+    const words = raw.trim() ? raw.trim().split(/\s+/).filter(Boolean) : [];
+    let vc = 0, cc = 0;
+    letters.forEach(c => { if (VOWELS.has(c)) vc++; else cc++; });
+    return { raw, s, letters, digits, words, nVowels: vc, nCons: cc, copy: "" };
+  }
+
+  function paint() {
+    const D = analyze(input.value);
+
+    SYSTEMS.forEach(s => {
+      try {
+        s.update(s.n, D);
+        s.copyVal = D.copy;
+        const m = (s.copyVal || "").match(/(\d+)\s*$/);
+        s.res = m ? +m[1] : null;
+      } catch (err) {
+        /* one broken card must not take the rest down */
+      }
+    });
+
+    /* Result mode's pills are built from the numbers just computed. The pills
+       only need rebuilding when the SET of distinct results changes, not when
+       a count changes, so typing inside an existing group does not churn the
+       row on every keystroke. */
+    /* In result mode the pills depend on what the input produced. Rebuild only when
+       the set of distinct results actually changes — otherwise every keystroke
+       would replace the row and drop the button the user is hovering. */
+    if (mode === "result") {
+      const sig = order(groupKey()).sort().join("|");
+      if (sig !== repaintTags._sig) repaintTags();
+    }
+    applyFilter();
+
+    const pill = (k, v, cls) => '<span class="' + (cls || "") + '">' + k + " <b>" + v + "</b></span>";
+
+    const visible = SYSTEMS.filter(s => s.el.style.display !== "none");
+    const roots = visible.map(s => s.res).filter(v => v !== null && v !== 0);
+    const masters = roots.filter(isMaster);
+    const plain = roots.filter(v => !isMaster(v));
+    const tally = {};
+    plain.forEach(v => { tally[v] = (tally[v] || 0) + 1; });
+
+    let tail = "";
+    if (masters.length) {
+      tail = pill("master", Array.from(new Set(masters)).join(" / "), "on");
+    } else if (plain.length) {
+      const top = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0];
+      tail = pill("agreement", tally[top] + "/" + plain.length + " &rarr; " + top);
+    }
+
+    stats.innerHTML =
+      pill("letters", D.letters.length) + pill("digits", D.digits.length) +
+      pill("vowels", D.nVowels) + pill("consonants", D.nCons) +
+      pill("cards", visible.length + "/" + SYSTEMS.length) + tail;
+
+    visible.forEach(s => { s.el.classList.toggle("mas", s.res !== null && isMaster(s.res)); });
+  }
+
+  let raf = null;
+  const schedule = () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = null; paint(); });
+  };
+
+  input.addEventListener("input", schedule);
+  input.addEventListener("paste", schedule);
+  // a queued frame is dropped while the tab is hidden; never sit on a stale render
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) paint(); });
+
+  root.querySelector("#nq-clear").addEventListener("click", () => {
+    input.value = ""; paint(); input.focus();
+  });
+  root.querySelectorAll("[data-preset]").forEach(b =>
+    b.addEventListener("click", () => { input.value = b.dataset.preset; paint(); }));
+
+  input.value = INITIAL_INPUT;
+  repaintTags();
+  paint();
+})();
+</script>
+
+</body>
+</html>
