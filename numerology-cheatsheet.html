@@ -1872,34 +1872,61 @@
     }).join("");
   };
   var ref = function (d) {
-    return {
-      id: d.id,
-      views: d.views,
-      tag: d.tag,
-      trad: d.trad,
-      num: d.num,
-      title: d.title,
-      note: d.note,
-      html: function () {
-        return '<div class="bigrow"><div class="big">&mdash;</div><div class="meta">' +
-          '<div><span class="k">entries</span><b data-n="n">' + d.rows.length + '</b></div>' +
-          '<div><span class="k">source</span><b>' + d.source + '</b></div></div></div>' +
-          '<div class="sectitle">reference</div><div class="nq-ctl">' + d.front + '</div>';
-      },
-      back: function () {
-        return "<p>" + d.lede + "</p>" + entryBlock(d.rows);
-      },
-      update: function (n, D) {
-        n.val.textContent = "\u2014";
-        n.n.textContent = d.rows.length;
-        if (D) D.copy = d.title;
+  return {
+    id: d.id,
+    ref: true,
+    views: d.views,
+    tag: d.tag,
+    trad: d.trad,
+    num: d.num,
+    rows: d.rows,
+    source: d.source,
+    title: d.title,
+    note: d.note,
+    lede: d.lede,
+    html: function () {
+      return '<div class="nq-ctl" data-n="rows" style="display:grid;gap:8px"></div>' +
+        '<div class="nq-note" data-n="status" style="margin-top:10px"></div>';
+    },
+    back: function () {
+      return "<p>" + d.lede + "</p>" + entryBlock(d.rows);
+    },
+    update: function (n, D) {
+      var target = null;
+      if (d.id === "ref_core" || d.id === "ref_sep" || d.id === "ref_loshu") {
+        if (D.letters.length) target = masterReduce(D.letters.reduce(function (a, ch) { return a + pythValue(ch.charCodeAt(0)); }, 0));
+        else target = masterReduce(D.digits.reduce(function (a, b) { return a + b; }, 0));
+      } else if (d.id === "ref_chal") {
+        if (D.letters.length) target = masterReduce(D.letters.reduce(function (a, ch) { return a + chaldeanValue(ch.charCodeAt(0)); }, 0));
+        else target = masterReduce(D.digits.reduce(function (a, b) { return a + b; }, 0));
+      } else if (d.id === "ref_life") {
+        var groups = [];
+        if (/[-/.]/.test(D.raw)) groups = D.raw.split(/[-/.]+/).map(function (g) { return g.replace(/\D/g, ""); }).filter(Boolean);
+        else if (/^\d{8}$/.test(D.raw.trim())) { var s = D.raw.trim(); groups = [s.slice(0, 4), s.slice(4, 6), s.slice(6, 8)]; }
+        else if (/^\d{6}$/.test(D.raw.trim())) { var s = D.raw.trim(); groups = [s.slice(0, 2), s.slice(2, 4), s.slice(4, 6)]; }
+        if (groups.length >= 2) {
+          var comps = groups.map(function (g) { return masterReduce(parseInt(g, 10)); });
+          target = masterReduce(comps.reduce(function (a, b) { return a + b; }, 0));
+        } else target = masterReduce(D.digits.reduce(function (a, b) { return a + b; }, 0));
       }
-    };
+      if (n.rows) {
+        var html = d.rows.map(function (pair) {
+          var match = target !== null && (String(pair[0]) === String(target) || pair[0].indexOf(String(target)) >= 0);
+          var pad = match ? "padding:10px 12px;border:1px solid var(--nq-gold);background:color-mix(in srgb,var(--nq-gold) 14%,transparent);color:var(--nq-gold);font-weight:700;" : "padding:10px 12px;border:1px solid var(--nq-faint);background:transparent;";
+          return '<div style="display:flex;gap:14px;align-items:flex-start;border-radius:8px;' + pad + '">' +
+            '<b style="font-family:var(--nq-mono);font-size:15px;min-width:4.6em;align-self:flex-start">' + pair[0] + '</b>' +
+            '<span style="flex:1;line-height:1.55">' + pair[1] + '</span></div>';
+        }).join("");
+        n.rows.innerHTML = html;
+      }
+      if (n.status) n.status.textContent = "";
+      if (D) D.copy = d.title;
+    }
   };
-
+};
   var r1_9 = function (entries) { return entries; };
   SYSTEMS.push(ref({
-    id: "ref_core", views: ["general", "reference"], tag: "pythagorean", trad: "pythagorean", num: "1-9",
+    id: "ref_core", views: ["general", "reference", "name"], tag: "pythagorean", trad: "pythagorean", num: "1-9",
     title: "Reference: standard 1-9 meanings", source: "Cheiro-derived Western", lede:
       "The core meanings the sheet reduces to. Masters 11, 22 and 33 are added beneath.",
     rows: [
@@ -2006,6 +2033,25 @@
     note: "Reference table for the Lo Shu reduction."
   }));
 })();
+// Reorder reference cards to just after their parent cards.
+(function () {
+  var map = {
+    ref_core: "simple",
+    ref_life: "lifepath",
+    ref_chal: "chaldean",
+    ref_sep: "seph",
+    ref_loshu: "loshu"
+  };
+  Object.keys(map).forEach(function (rid) {
+    var idi = SYSTEMS.map(function (c) { return c.id; }).indexOf(rid);
+    var idi2 = SYSTEMS.map(function (c) { return c.id; }).indexOf(map[rid]);
+    if (idi >= 0 && idi2 >= 0 && idi2 < idi) {
+      var card = SYSTEMS.splice(idi,1)[0];
+      SYSTEMS.splice(idi2 + 1, 0, card);
+    }
+  });
+})();
+
 
 
   /* ==========================================================================
@@ -2945,11 +2991,10 @@
       try { readHTML = '<div class="nq-read">' + M.read() + "</div>"; } catch (err) { readHTML = ""; }
     }
 
+    const isRef = !!s.ref;
     el.innerHTML =
       '<div class="nq-head"><h3>' + esc(s.title) + '</h3><span class="t">' + esc(s.tag) + "</span></div>" +
-      '<div class="nq-tools">' +
-        '<button class="nq-tb" type="button" data-role="flip" aria-pressed="false" ' +
-          'title="show the extended explanation">flip</button>' +
+      '<div class="nq-tools">' + (isRef ? '' : '<button class="nq-tb" type="button" data-role="flip" aria-pressed="false" title="show the extended explanation">flip</button>') +
         '<button class="nq-tb" type="button" data-role="copy" title="copy this result">copy</button>' +
       "</div>" +
       '<div class="nq-face" data-face="front">' +
@@ -2959,7 +3004,7 @@
           kwHTML +
         "</div>" +
       "</div>" +
-      '<div class="nq-face nq-back" data-face="back" hidden>' + s.back() + readHTML + "</div>";
+      (isRef ? '' : '<div class="nq-face nq-back" data-face="back" hidden>' + s.back() + readHTML + "</div>");
 
     listBox.appendChild(el);
 
@@ -2970,18 +3015,20 @@
     /* one-off wiring, for cards that need their own controls */
     if (typeof s.mount === "function") { try { s.mount(el, n); } catch (err) {} }
 
-    /* flip front <-> back */
+    /* flip front <-> back (guarded) */
     const flipBtn = el.querySelector('[data-role="flip"]');
     const front = el.querySelector('[data-face="front"]');
     const back = el.querySelector('[data-face="back"]');
-    flipBtn.addEventListener("click", () => {
-      const on = back.hidden;
-      back.hidden = !on;
-      front.hidden = on;
-      flipBtn.textContent = on ? "back" : "flip";
-      flipBtn.title = on ? "show the result again" : "show the extended explanation";
-      flipBtn.setAttribute("aria-pressed", on ? "true" : "false");
-    });
+    if (flipBtn && front && back) {
+      flipBtn.addEventListener("click", () => {
+        const on = back.hidden;
+        back.hidden = !on;
+        front.hidden = on;
+        flipBtn.textContent = on ? "back" : "flip";
+        flipBtn.title = on ? "show the result again" : "show the extended explanation";
+        flipBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    }
 
     /* copy the current result */
     const copyBtn = el.querySelector('[data-role="copy"]');
